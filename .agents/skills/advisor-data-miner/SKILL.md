@@ -191,56 +191,51 @@ Domains_Tags: 1-3 application systems, theoretical sub-domains, or biological/ph
 
 ---
 
-## 🤖 Step 6: Multi-Agent Batch Orchestration Prompt
+## 🤖 Step 6: Universal AI Prompts & Agent Execution (Claude • ChatGPT • Cursor)
 
-To execute this workflow automatically via subagents, use the following battle-tested prompt templates:
+This workflow can be executed using any modern LLM or autonomous agent. Choose the execution pattern that matches your environment:
 
-### Orchestrator Subagent Prompt
+### Pattern A: Direct Interactive Research (Claude 3.5 Sonnet / ChatGPT GPT-4o)
+If using the web interface of **Claude** or **ChatGPT** with Web Browsing:
+
+```text
+You are an expert academic advisor discovery agent.
+Target Discipline: {TARGET_DISCIPLINE}
+Keywords: {METHOD_KEYWORDS}, {DOMAIN_KEYWORDS}
+Target University: {University Name}
+
+Instructions:
+1. Use web browsing to sweep all relevant departments (e.g. Computer Science, Engineering, Medicine, and interdisciplinary research centers) at {University Name}.
+2. Find tenure-track faculty (Assistant, Associate, Full Professors) working on {TARGET_DISCIPLINE}.
+3. For each researcher, search Google Scholar for "[Name] [University]" to extract H-index and citations: "H-index (Citations)".
+4. Check their personal lab website for lab launch year (flag New PIs starting 2024-2027) and active PhD/postdoc openings.
+5. Extract their educational pedigree (Undergraduate, PhD, Postdoc).
+6. Assign 1-3 Methods Tags and 1-3 Domains Tags.
+7. Output the final data as a single, valid JSON array conforming to the Find Your Advisor schema.
+```
+
+### Pattern B: AI Coding Agents & IDEs (Cursor / Windsurf / Cline / Aider)
+If working inside a code editor with terminal and tool-calling capabilities:
+
 ```markdown
-You are an academic discovery orchestrator.
+You are an autonomous academic advisor data miner.
 Target Discipline: {TARGET_DISCIPLINE}
 Keywords: {METHOD_KEYWORDS}, {DOMAIN_KEYWORDS}
 
 Task:
-1. Read the list of target universities from `{INPUT_FILE}` (or target list).
-2. Divide the universities into batches of 3 to 5 universities per batch.
-3. For each batch:
-   - Use `invoke_subagent` to launch 1 `data_miner` subagent per university concurrently.
-   - Instruct each subagent to deeply sweep relevant departments, extract PI profiles, fetch Scholar metrics, and save results to `batches/{safe_uni_name}.json`.
-   - Wait for all subagents in the batch to report completion before proceeding to the next batch.
-4. When all batches are completed:
-   - Run `python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db neuroai.db` to validate, geocode, deduplicate, and ingest all records into SQLite.
-5. Report total universities and PIs indexed.
+1. Read the university target list from `uni_list.txt` (or custom list).
+2. Process universities in batches of 3-5 schools to manage context and prevent rate limiting.
+3. For each school, sweep department directories, extract full PI profiles according to `.agents/skills/advisor-data-miner/references/schema.md`, and save to `batches/{safe_uni_name}.json`.
+4. When all batches are done, execute:
+   `python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db neuroai.db`
+5. Verify the count of inserted records and report completion.
 ```
 
-### Worker Miner Subagent Prompt
-```markdown
-You are an expert academic data miner.
-Target University: {University Name}
-Discipline: {TARGET_DISCIPLINE}
-Keywords: {KEYWORDS}
+### Pattern C: Multi-Agent Subagent Architecture
+For frameworks supporting orchestrator-worker patterns (e.g. CrewAI, AutoGen, or custom agent swarms):
 
-Instructions:
-1. Search across all relevant departments and multidisciplinary research institutes at {University Name}.
-2. Find all tenure-track faculty (Assistant, Associate, Full Professors) working on {TARGET_DISCIPLINE}.
-3. For each researcher, extract:
-   - "Name": Full name
-   - "University": "{University Name}" (Exact canonical name)
-   - "Institute": Affiliated center / research institute
-   - "Department": Primary academic department
-   - "Title": Academic rank
-   - "City", "State", "Country": Location details
-   - "Subject": Research description & keywords
-   - "Web": Personal lab website URL or faculty page
-   - "H-index": Search Google Scholar for "[Name] [University]". Format: "H-index (Citations)". If rate-limited, use "Unknown".
-   - "Undergraduate School", "Master", "Phd", "Postdoc": Educational history
-   - "Research Experience": Summary of past research focus
-   - "Start Time": Year lab was established (e.g., "2025", "2026")
-   - "Other": Openings notes (e.g. "Looking for PhD students")
-   - "Methods_Tags": Comma-separated method tags
-   - "Domains_Tags": Comma-separated domain tags
-4. Save the results as a clean JSON array to: `batches/{safe_uni_name}.json` using `write_to_file`.
-```
+- **Orchestrator Prompt**: Manages the university queue, batches 3-5 subagents concurrently, monitors task completion, and triggers `scripts/ingest.py` upon completion.
+- **Worker Miner Prompt**: Specializes in deep department directory traversal, Scholar extraction with anti-bot fallbacks, and writing `batches/{safe_uni_name}.json`.
 
 ---
 
