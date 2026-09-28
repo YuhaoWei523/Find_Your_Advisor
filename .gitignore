@@ -1,0 +1,62 @@
+# ==============================================================================
+# Find Your Advisor - Git Ignore Rules
+# ==============================================================================
+
+# Database & User Data (Strict Privacy)
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+data.js
+
+# Personal Spreadsheets & Crawled Data
+*.csv
+*.xlsx
+*.xls
+phase*_json/
+json_batches*/
+batches/
+Europe/
+North America/
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs & Runtime
+*.log
+.system_generated/
+scratch/
+
+# IDE & Editor Artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

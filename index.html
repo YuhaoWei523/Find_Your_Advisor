@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Your Advisor - Academic PI Discovery & CRM Platform</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --nav-bg: #0f172a;
+            --nav-text: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --accent: #06b6d4;
+            --accent-hover: #0891b2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            
+            --border: #e2e8f0;
+        }
+        
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; background-color: var(--bg-body); color: var(--text-main); }
+        
+        h1, h2, h3, h4 { color: #0f172a; margin-top: 0; }
+        p { margin: 0 0 10px 0; color: var(--text-muted); }
+        strong { color: var(--text-main); font-weight: 600; }
+        a { color: var(--primary); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+        a:hover { color: var(--primary-hover); }
+
+        .top-navbar { position: sticky; top: 0; z-index: 1000; display: flex; justify-content: space-between; align-items: center; background: var(--nav-bg); padding: 12px 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); color: var(--nav-text); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .top-navbar h1 { margin: 0; font-size: 1.4em; color: var(--nav-text); font-weight: 600; letter-spacing: -0.02em; }
+        .navbar-actions { display: flex; gap: 12px; align-items: center; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; font-size: 0.9em; cursor: pointer; transition: all 0.2s ease; gap: 6px; }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 1px 2px rgba(37, 99, 235, 0.3); }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2); }
+        .btn-accent { background: var(--accent); color: white; box-shadow: 0 1px 2px rgba(6, 182, 212, 0.3); }
+        .btn-accent:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(6, 182, 212, 0.2); }
+        .btn-danger { background: var(--danger); color: white; box-shadow: 0 1px 2px rgba(239, 68, 68, 0.3); }
+        .btn-danger:hover { background: #dc2626; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2); }
+        .btn-outline { background: transparent; border: 1.5px solid rgba(255,255,255,0.7); color: white; }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: white; }
+        .btn-disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+        .btn-disabled:hover { background: #e2e8f0; transform: none; box-shadow: none; }
+        
+        .btn-action { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 8px; border-radius: 6px; font-weight: 500; }
+        .btn-action:hover { background: #f1f5f9; color: var(--text-main); }
+        .btn-cancel { background: #f1f5f9; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-cancel:hover { background: #e2e8f0; }
+
+        .container { display: flex; width: 100vw; height: calc(100vh - 65px); overflow: hidden; box-sizing: border-box; }
+        .sidebar { width: 320px; padding: 24px; background: var(--bg-card); overflow-y: auto; border-right: 1px solid var(--border); flex-shrink: 0; box-shadow: 1px 0 3px rgba(0,0,0,0.02); }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        
+        .main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; padding: 24px 32px 12px; background: var(--bg-body); z-index: 10; }
+        .search-bar { width: 100%; padding: 12px 20px; border: 1px solid var(--border); border-radius: 12px; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s; background: white; }
+        .search-bar:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .stats { padding: 0 32px 16px; font-size: 0.9em; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid transparent; }
+        
+        /* ================= Modern Map System ================= */
+        #map-wrapper {
+            position: relative;
+            width: 100%;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
+            background: #e2e8f0;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+            display: none;
+        }
+        #map {
+            width: 100%;
+            height: 320px;
+            transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #map.expanded {
+            height: 520px;
+        }
+        .map-overlay-panel {
+            position: absolute;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+        .map-overlay-tl {
+            top: 12px;
+            left: 55px; /* Offset to clear Leaflet zoom controls */
+        }
+        .map-overlay-tr {
+            top: 12px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+        }
+        .map-overlay-bl {
+            bottom: 16px;
+            left: 16px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            color: #f8fafc;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .map-ctrl-btn {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            color: #1e293b;
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .map-ctrl-btn:hover {
+            background: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+            color: var(--primary);
+        }
+        .map-select {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            color: #1e293b;
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            outline: none;
+            max-width: 250px;
+            transition: all 0.2s ease;
+        }
+        .map-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        /* Marker Badges */
+        .map-marker-container {
+            background: none !important;
+            border: none !important;
+        }
+        .map-marker-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 6px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: white;
+            font-weight: 700;
+            font-size: 11px;
+            box-shadow: 0 3px 8px rgba(37, 99, 235, 0.4), 0 0 0 2px white;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            user-select: none;
+            box-sizing: border-box;
+        }
+        .map-marker-badge:hover {
+            transform: scale(1.22);
+            z-index: 1000 !important;
+            box-shadow: 0 6px 14px rgba(37, 99, 235, 0.6), 0 0 0 3px white;
+        }
+        .map-marker-badge.has-starred {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 3px 8px rgba(245, 158, 11, 0.4), 0 0 0 2px white;
+            animation: marker-pulse-gold 2.5s infinite;
+        }
+        .map-marker-badge.has-outreach {
+            background: linear-gradient(135deg, #059669, #10b981);
+            box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4), 0 0 0 2px white;
+        }
+
+        @keyframes marker-pulse-gold {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6), 0 0 0 2px white; }
+            70% { box-shadow: 0 0 0 9px rgba(245, 158, 11, 0), 0 0 0 2px white; }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0), 0 0 0 2px white; }
+        }
+
+        /* Modern Leaflet Popup */
+        .leaflet-popup-content-wrapper {
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(12px);
+            border-radius: 16px !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            padding: 0 !important;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.08) !important;
+        }
+        .leaflet-popup-content {
+            margin: 0 !important;
+            line-height: 1.5 !important;
+        }
+        .leaflet-popup-tip {
+            background: rgba(255, 255, 255, 0.98) !important;
+        }
+        .custom-map-popup {
+            padding: 18px 20px;
+            min-width: 260px;
+            max-width: 320px;
+        }
+        .popup-header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+        .popup-uni-name {
+            margin: 0 0 4px 0;
+            font-size: 1.1em;
+            color: #0f172a;
+            font-weight: 700;
+        }
+        .popup-country {
+            display: inline-block;
+            font-size: 0.75em;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .popup-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .popup-stat .stat-num {
+            display: block;
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .popup-stat .stat-label {
+            font-size: 0.7em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .popup-pi-preview {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            line-height: 1.4;
+            max-height: 85px;
+            overflow-y: auto;
+        }
+        .popup-pi-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 3px 0;
+        }
+        .popup-filter-btn {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+        }
+        .popup-filter-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.35);
+        }
+
+        /* Card Link to Map */
+        .uni-fly-link {
+            cursor: pointer;
+            color: var(--primary);
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border-bottom: 1px dashed transparent;
+        }
+        .uni-fly-link:hover {
+            color: var(--primary-hover);
+            border-bottom-color: var(--primary);
+        }
+        .card-grid { flex: 1; width: 100%; box-sizing: border-box; overflow-y: auto; padding: 16px 32px 32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; align-content: start; grid-auto-rows: max-content; }
+        .card-grid::-webkit-scrollbar { width: 8px; }
+        .card-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        .card { background: var(--bg-card); padding: 24px; border-radius: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02); transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 2px solid transparent; position: relative; box-sizing: border-box; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .crm-controls { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border); }
+        .status-select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; width: 100%; box-sizing: border-box; font-family: inherit; font-size: 0.9em; background: white; }
+        .notes-area { width: 100%; height: 60px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; resize: vertical; font-family: inherit; font-size: 0.9em; }
+        .card:hover { border-color: #bae6fd; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.025); transform: translateY(-2px); }
+        .card.selected { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15), 0 10px 15px -3px rgba(0,0,0,0.1); transform: translateY(-4px); }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75em; margin: 0 6px 8px 0; font-weight: 600; letter-spacing: 0.02em; }
+        .tag-method { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+        .tag-domain { background: #dcfce3; color: #15803d; border: 1px solid #bbf7d0; }
+        
+        .badge-new { background: linear-gradient(135deg, #f59e0b, #ea580c) !important; color: white !important; float: right; border: none; }
+        .badge-incoming { background: linear-gradient(135deg, #ec4899, #be185d) !important; color: white !important; float: right; border: none; }
+        .badge-manual { background: #8b5cf6 !important; color: white !important; float: right; margin-right: 6px; border: none; }
+        .badge-logs { background: #0ea5e9 !important; color: white !important; float: right; margin-right: 6px; cursor: pointer; border: none; transition: transform 0.2s; }
+        .badge-logs:hover { transform: scale(1.05); }
+
+        .filter-section { margin-bottom: 28px; }
+        .filter-section h4 { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px; font-size: 0.85em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+        .filter-label { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.9em; color: var(--text-main); cursor: pointer; transition: color 0.2s; }
+        .filter-label:hover { color: var(--primary); }
+        .filter-label input { margin-right: 10px; accent-color: var(--primary); cursor: pointer; width: 16px; height: 16px; }
+
+        .star-rating { cursor: pointer; color: #cbd5e1; font-size: 1.1em; display: inline-flex; align-items: center; gap: 2px; }
+        .star-rating .active { color: #f59e0b; text-shadow: 0 0 2px rgba(245, 158, 11, 0.4); }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; }
+        .modal { background: var(--bg-card); padding: 32px; border-radius: 20px; width: 550px; max-width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85em; color: var(--text-muted); }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; box-sizing: border-box; font-family: inherit; font-size: 0.95rem; transition: border-color 0.2s, box-shadow 0.2s; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+    
+        .card-status-Uncontacted { border-left: 5px solid #cbd5e1 !important; }
+        .card-status-Reading { border-left: 5px solid #38bdf8 !important; }
+        .card-status-Drafting { border-left: 5px solid #fbbf24 !important; }
+        .card-status-Contacted { border-left: 5px solid #a3e635 !important; }
+        .card-status-Positive { border-left: 5px solid #4ade80 !important; }
+        .card-status-Negative { border-left: 5px solid #f87171 !important; }
+        .card-status-Interview { border-left: 5px solid #c084fc !important; }
+        .card-status-Offer { border-left: 5px solid #10b981 !important; }
+        .card-status-Rejected { border-left: 5px solid #94a3b8 !important; }
+
+    </style>
+</head>
+<body>
+        <nav class="top-navbar">
+        <div style="display:flex; align-items:center;">
+            <img src="web_assets/logo.jpg" alt="Logo" style="height:44px; margin-right:16px; border-radius:8px;">
+            <h1>Find Your Advisor</h1>
+        </div>
+        <div class="navbar-actions">
+            <button id="btn-edit-selected" class="btn btn-disabled" disabled>✏️ Edit Selected</button>
+            <button id="btn-delete-selected" class="btn btn-disabled" disabled>🗑️ Delete Selected</button>
+            <button id="open-journal-btn" class="btn btn-accent">📔 Outreach Journal</button>
+            <button id="toggle-map-btn" class="btn btn-outline">🌍 Toggle Map</button>
+            <button id="add-pi-btn" class="btn btn-primary">➕ Add New PI</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="sidebar">
+            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px; color: #1976d2;">🛠️ CRM Tracking</div>
+            
+            <div class="filter-section">
+                <h4>Priority Rating</h4>
+                <div id="priority-filters"></div>
+            </div>
+
+            <div class="filter-section">
+                <h4>Outreach Status</h4>
+                <div id="status-filters"></div>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;">
+            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 15px; color: #1976d2;">🔬 Academic Profile</div>
+
+            <div class="filter-section">
+                <h4>PI Status</h4>
+                <label class="filter-label"><input type="checkbox" id="filter-new-pi"> Only New PIs (2025/2026)</label>
+                <label class="filter-label"><input type="checkbox" id="filter-incoming-pi"> Only Incoming PIs (2027)</label>
+            </div>
+
+            <div class="filter-section">
+                <h4>Methods 
+                    <select id="methods-logic" style="float:right; font-size: 0.8em;">
+                        <option value="OR">OR</option>
+                        <option value="AND">AND</option>
+                    </select>
+                </h4>
+                <div id="methods-filters"></div>
+            </div>
+
+            <div class="filter-section">
+                <h4>Domains
+                    <select id="domains-logic" style="float:right; font-size: 0.8em;">
+                        <option value="OR">OR</option>
+                        <option value="AND">AND</option>
+                    </select>
+                </h4>
+                <div id="domains-filters"></div>
+            </div>
+
+            <div class="filter-section">
+                <h4>Universities</h4>
+                <div id="university-filters"></div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="header-actions">
+                <input type="text" id="search-input" class="search-bar" placeholder="Search by name, subject, or keywords..." style="width: 100%;">
+                
+            </div>
+            <div class="stats">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <span id="stats-text">Loading...</span>
+                    <div id="map-filter-banner" style="display:none; align-items:center; gap:8px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:4px 12px; border-radius:20px; font-size:0.85em; font-weight:600;">
+                        <span>📍 Map Filter: <strong id="map-filter-uni-name"></strong></span>
+                        <button onclick="clearMapFilter()" style="background:none; border:none; color:#1e40af; font-weight:bold; cursor:pointer; padding:0 4px; font-size:1.1em; line-height:1;" title="Clear filter">✕</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Interactive Map Wrapper -->
+            <div id="map-wrapper">
+                <div id="map"></div>
+                
+                <!-- Top-left: University Search/FlyTo -->
+                <div class="map-overlay-panel map-overlay-tl">
+                    <select id="map-uni-flyto" class="map-select">
+                        <option value="">✈️ Fly to university...</option>
+                    </select>
+                </div>
+
+                <!-- Top-right: Map Controls -->
+                <div class="map-overlay-panel map-overlay-tr">
+                    <button id="map-fit-bounds-btn" class="map-ctrl-btn" title="Fit all markers into view">🌍 Fit All</button>
+                    <button id="map-height-toggle-btn" class="map-ctrl-btn" title="Toggle Compact / Expanded height">📐 Expand</button>
+                    <button id="map-close-btn" class="map-ctrl-btn" title="Close map">✕</button>
+                </div>
+
+                <!-- Bottom-left: HUD Stats -->
+                <div class="map-overlay-panel map-overlay-bl">
+                    <span id="map-hud-stats">📍 Loading map...</span>
+                </div>
+            </div>
+            <div class="card-grid" id="results-grid"></div>
+        </div>
+    </div>
+
+    <!-- Editor Modal -->
+    <div class="modal-overlay" id="editor-modal">
+        <div class="modal">
+            <h2 id="modal-title">Edit Researcher</h2>
+            <input type="hidden" id="edit-id">
+            
+            <div class="form-group">
+                <label>Name (Required)</label>
+                <input type="text" id="edit-name" required>
+            </div>
+            <div class="form-group">
+                <label>University / Institute (Required)</label>
+                <select id="edit-university" required></select>
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="edit-department">
+            </div>
+            <div class="form-group">
+                <label>Title (e.g. Assistant Professor)</label>
+                <input type="text" id="edit-title">
+            </div>
+            <div class="form-group">
+                <label>Subject Focus</label>
+                <input type="text" id="edit-subject">
+            </div>
+            <div class="form-group">
+                <label>Start Time (e.g. 2025)</label>
+                <input type="text" id="edit-start-time">
+            </div>
+            <div class="form-group">
+                <label>H-index</label>
+                <input type="text" id="edit-h-index">
+            </div>
+            <div class="form-group">
+                <label>Personal Webpage URL</label>
+                <input type="text" id="edit-web">
+            </div>
+            <div class="form-group">
+                <label>Methods Tags (comma separated)</label>
+                <input type="text" id="edit-methods">
+            </div>
+            <div class="form-group">
+                <label>Domains Tags (comma separated)</label>
+                <input type="text" id="edit-domains">
+            </div>
+            
+            
+            <div class="form-group" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
+                <label>Outreach History (Linked Logs)</label>
+                <div id="edit-history" style="max-height: 200px; overflow-y: auto; background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px solid #ddd; font-size: 0.9em;">
+                    <em style="color:#888;">No history found.</em>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveResearcher()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Journal Workspace -->
+    <div class="modal-overlay" id="journal-workspace" style="display:none; flex-direction:row; padding:20px; box-sizing:border-box;">
+        <div class="modal" style="width: 100%; height: 100%; max-width: none; max-height: none; display: flex; gap: 20px; background: transparent; box-shadow: none; padding: 0;">
+            <!-- Left panel: Timeline -->
+            <div style="flex: 1; background: white; border-radius: 12px; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+                    <h2 style="margin:0;">📔 Timeline</h2>
+                    <button class="btn-primary" onclick="newLog()">📝 New</button>
+                </div>
+                <div style="margin-top:10px; display:flex; gap:10px;">
+                    <select id="timeline-filter" onchange="renderTimeline()" style="padding:6px; border-radius:4px; border:1px solid #ccc; width:100%;">
+                        <option value="All">All Logs</option>
+                        <option value="Daily">Daily Logs</option>
+                        <option value="Weekly">Weekly Reports</option>
+                        <option value="Monthly">Monthly Reports</option>
+                    </select>
+                </div>
+                <div id="journal-timeline" style="margin-top:15px; flex:1; overflow-y:auto; padding-right:10px;"></div>
+            </div>
+            
+            <!-- Right panel: Editor -->
+            <div style="flex: 2; background: white; border-radius: 12px; padding: 25px; display: flex; flex-direction: column; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom:20px;">
+                    <h2 style="margin:0;">Editor</h2>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-cancel" onclick="closeJournal()">Close Workspace</button>
+                        <button class="btn-primary" id="btn-delete-log" onclick="deleteLog()" style="background:#f44336; display:none;">🗑️ Delete</button>
+                        <button class="btn-primary" onclick="saveLog()">Save Log</button>
+                    </div>
+                </div>
+                <input type="hidden" id="log-id">
+                <div style="display:flex; gap:15px; margin-bottom:20px;">
+                    <input type="date" id="log-date" style="padding:10px; border:1px solid #ccc; border-radius:6px; font-weight:bold; color:#555;">
+                    <select id="log-type" style="padding:10px; border:1px solid #ccc; border-radius:6px; font-weight:bold; color:#555;">
+                        <option value="Daily">Daily Log</option>
+                        <option value="Weekly">Weekly Report</option>
+                        <option value="Monthly">Monthly Report</option>
+                    </select>
+                </div>
+                
+                <style>
+                    #log-content-editable { flex:1; padding:20px; border:1px solid #ddd; border-radius:8px; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size:16px; overflow-y:auto; outline:none; line-height:1.6; color:#333; }
+                    #log-content-editable:focus { border-color: #1976d2; box-shadow: 0 0 5px rgba(25,118,210,0.3); }
+                    .mention-badge { background:#e3f2fd; color:#1976d2; padding:2px 8px; border-radius:12px; font-weight:bold; cursor:pointer; user-select:all; display:inline-block; margin:0 2px; }
+                    .mention-badge:hover { background:#bbdefb; }
+                    [contenteditable=true]:empty:before { content: attr(placeholder); color: #aaa; pointer-events: none; display: block; }
+                </style>
+                
+                <div id="log-content-editable" contenteditable="true" placeholder="Type your journal entry here. Use @ to mention a researcher..."></div>
+                
+                <!-- Mention Dropdown -->
+                <div id="mention-dropdown" style="display:none; position:absolute; background:white; border:1px solid #ccc; box-shadow:0 8px 16px rgba(0,0,0,0.15); border-radius:8px; max-height:250px; overflow-y:auto; z-index:2000; width: 350px;"></div>
+            </div>
+        </div>
+    </div>
+    <!-- Data will be loaded from this file to bypass CORS issues for local files -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="web_assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,558 @@
+#!/usr/bin/env python3
+"""
+Find Your Advisor - Academic PI Discovery & CRM Platform Backend
+Zero third-party pip dependencies required. Built with Python standard library.
+Serves static frontend assets and provides SQLite REST API.
+"""
+
+import os
+import sys
+import json
+import sqlite3
+import mimetypes
+import urllib.parse
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+DB_PATH = 'neuroai.db'
+SEED_FILE = 'seed_universities.json'
+
+DEFAULT_METHODS = [
+    'BCI', 'Brain Modeling', 'Electrophysiology', 'Genomics / Bioinformatics',
+    'NeuroAI / Machine Learning', 'Neuroimaging', 'Neuromodulation',
+    'Optical Imaging', 'SNN / Neuromorphic'
+]
+
+DEFAULT_DOMAINS = [
+    'Attention', 'Auditory', 'Decision Making', 'Disease / Clinical',
+    'Emotion / Social', 'Linguistic', 'Memory', 'Motor',
+    'Sleep / Circadian', 'Visual'
+]
+
+DEFAULT_STATUSES = [
+    'Uncontacted', 'Reading Papers', 'Drafting Email',
+    'Contacted', 'Replied - Positive', 'Replied - Negative',
+    'Interview', 'Offer', 'Rejected'
+]
+
+def init_database_if_needed():
+    """Ensures database tables exist and seeds universities if empty."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS universities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        country TEXT DEFAULT 'USA',
+        lat REAL,
+        lon REAL
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS researchers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        University TEXT,
+        Name TEXT NOT NULL,
+        Institute TEXT,
+        Department TEXT,
+        Title TEXT,
+        City TEXT,
+        State TEXT,
+        Subject TEXT,
+        Web TEXT,
+        H_index TEXT,
+        Undergraduate_School TEXT,
+        Master TEXT,
+        Phd TEXT,
+        Postdoc TEXT,
+        Research_Experience TEXT,
+        Start_Time TEXT,
+        Other TEXT,
+        Lat REAL,
+        Lon REAL,
+        Methods_Tags TEXT,
+        Domains_Tags TEXT,
+        Application_Status TEXT DEFAULT 'Uncontacted',
+        User_Notes TEXT DEFAULT '',
+        Priority INTEGER DEFAULT 0,
+        university_id INTEGER REFERENCES universities(id),
+        Source TEXT DEFAULT 'Agent'
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        log_type TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS log_researcher_links (
+        log_id INTEGER,
+        researcher_id INTEGER,
+        PRIMARY KEY (log_id, researcher_id),
+        FOREIGN KEY (log_id) REFERENCES logs(id) ON DELETE CASCADE,
+        FOREIGN KEY (researcher_id) REFERENCES researchers(id) ON DELETE CASCADE
+    )
+    """)
+    conn.commit()
+
+    # Seed universities if empty
+    cursor.execute("SELECT COUNT(*) FROM universities")
+    if cursor.fetchone()[0] == 0 and os.path.exists(SEED_FILE):
+        try:
+            with open(SEED_FILE, 'r', encoding='utf-8') as f:
+                unis = json.load(f)
+                for u in unis:
+                    cursor.execute("""
+                    INSERT OR IGNORE INTO universities (id, name, country, lat, lon)
+                    VALUES (?, ?, ?, ?, ?)
+                    """, (u.get('id'), u.get('name'), u.get('country', 'USA'), u.get('lat'), u.get('lon')))
+            conn.commit()
+            print(f"[+] Seeded {len(unis)} universities into empty database.")
+        except Exception as e:
+            print(f"[!] Warning: Failed to seed universities: {e}")
+
+    conn.close()
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+class RequestHandler(BaseHTTPRequestHandler):
+    def end_headers(self):
+        # Enable CORS for cross-origin or local file usage
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type')
+        super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.end_headers()
+
+    def do_GET(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        path = parsed_path.path
+        
+        # API Routes
+        if path == '/api/tags':
+            self.handle_get_tags()
+        elif path == '/api/researchers':
+            self.handle_get_researchers(parsed_path.query)
+        elif path == '/api/universities':
+            self.handle_get_universities()
+        elif path == '/api/logs':
+            self.handle_get_logs()
+        elif path == '/api/researchers/history':
+            self.handle_get_researcher_history(parsed_path.query)
+        else:
+            # Static File Serving
+            self.handle_static_file(path)
+
+    def do_POST(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        path = parsed_path.path
+        if path == '/api/researchers/update':
+            self.handle_update_researcher()
+        elif path == '/api/researchers/add':
+            self.handle_add_researcher()
+        elif path == '/api/researchers/delete':
+            self.handle_delete_researcher()
+        elif path == '/api/logs/save':
+            self.handle_save_log()
+        elif path == '/api/logs/delete':
+            self.handle_delete_log()
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def handle_static_file(self, path):
+        # Default index
+        if path in ('/', ''):
+            path = '/index.html'
+            
+        safe_rel_path = path.lstrip('/')
+        # Prevent directory traversal
+        base_dir = os.path.abspath(os.path.dirname(__file__))
+        target_path = os.path.abspath(os.path.join(base_dir, safe_rel_path))
+        
+        if not target_path.startswith(base_dir) or not os.path.exists(target_path) or os.path.isdir(target_path):
+            self.send_response(404)
+            self.send_header('Content-Type', 'text/plain; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(b"404 Not Found")
+            return
+
+        mime_type, _ = mimetypes.guess_type(target_path)
+        if not mime_type:
+            mime_type = 'application/octet-stream'
+
+        try:
+            with open(target_path, 'rb') as f:
+                content = f.read()
+            self.send_response(200)
+            self.send_header('Content-Type', mime_type)
+            self.send_header('Content-Length', str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+
+    def handle_get_universities(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name FROM universities ORDER BY name")
+        rows = cursor.fetchall()
+        result = [{'id': r['id'], 'name': r['name']} for r in rows]
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+
+    def handle_get_tags(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT Methods_Tags, Domains_Tags FROM researchers")
+        rows = cursor.fetchall()
+        
+        methods = set(DEFAULT_METHODS)
+        domains = set(DEFAULT_DOMAINS)
+        
+        for r in rows:
+            m_tags = [t.strip() for t in str(r['Methods_Tags']).split(',') if t.strip() and t.strip() != 'None']
+            d_tags = [t.strip() for t in str(r['Domains_Tags']).split(',') if t.strip() and t.strip() != 'None']
+            methods.update(m_tags)
+            domains.update(d_tags)
+            
+        cursor.execute("SELECT name, country FROM universities ORDER BY country, name")
+        
+        # Group universities by country
+        unis_by_country = {}
+        for r in cursor.fetchall():
+            c = r['country'] or 'Other'
+            if c not in unis_by_country:
+                unis_by_country[c] = []
+            unis_by_country[c].append(r['name'])
+            
+        conn.close()
+        
+        data = {
+            'methods': sorted(list(methods)),
+            'domains': sorted(list(domains)),
+            'universities': unis_by_country,
+            'statuses': DEFAULT_STATUSES
+        }
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+
+    def handle_get_researchers(self, query_string):
+        query_params = urllib.parse.parse_qs(query_string, keep_blank_values=True)
+        
+        search = query_params.get('search', [''])[0].lower()
+        methods = query_params.get('methods[]', [])
+        domains = query_params.get('domains[]', [])
+        universities = query_params.get('universities[]', [])
+        statuses = query_params.get('statuses[]', [])
+        priorities = query_params.get('priorities[]', [])
+        new_pi = query_params.get('new_pi', ['false'])[0] == 'true'
+        incoming_pi = query_params.get('incoming_pi', ['false'])[0] == 'true'
+        methods_logic = query_params.get('methods_logic', ['OR'])[0]
+        domains_logic = query_params.get('domains_logic', ['OR'])[0]
+        
+        conn = get_db_connection()
+        query = """
+            SELECT r.*, u.name as uni_name, u.lat as uni_lat, u.lon as uni_lon 
+            FROM researchers r 
+            LEFT JOIN universities u ON r.university_id = u.id 
+            WHERE 1=1
+        """
+        params = []
+        
+        if search:
+            query += " AND (LOWER(r.Name) LIKE ? OR LOWER(r.Subject) LIKE ? OR LOWER(r.Department) LIKE ? OR LOWER(r.Other) LIKE ?)"
+            wildcard_search = f"%{search}%"
+            params.extend([wildcard_search] * 4)
+            
+        if universities:
+            placeholders = ','.join(['?'] * len(universities))
+            query += f" AND (u.name IN ({placeholders}))"
+            params.extend(universities)
+            
+        if statuses:
+            placeholders = ','.join(['?'] * len(statuses))
+            query += f" AND (r.Application_Status IN ({placeholders}))"
+            params.extend(statuses)
+
+        if priorities:
+            placeholders = ','.join(['?'] * len(priorities))
+            query += f" AND (r.Priority IN ({placeholders}))"
+            params.extend(priorities)
+
+        if new_pi and incoming_pi:
+            query += " AND (r.Start_Time LIKE '%2025%' OR r.Start_Time LIKE '%2026%' OR r.Start_Time LIKE '%2027%')"
+        elif new_pi:
+            query += " AND (r.Start_Time LIKE '%2025%' OR r.Start_Time LIKE '%2026%')"
+        elif incoming_pi:
+            query += " AND r.Start_Time LIKE '%2027%'"
+            
+        if methods:
+            if methods_logic == 'AND':
+                for m in methods:
+                    query += " AND r.Methods_Tags LIKE ?"
+                    params.append(f"%{m}%")
+            else:
+                query += " AND (" + " OR ".join(["r.Methods_Tags LIKE ?"] * len(methods)) + ")"
+                params.extend([f"%{m}%" for m in methods])
+                
+        if domains:
+            if domains_logic == 'AND':
+                for d in domains:
+                    query += " AND r.Domains_Tags LIKE ?"
+                    params.append(f"%{d}%")
+            else:
+                query += " AND (" + " OR ".join(["r.Domains_Tags LIKE ?"] * len(domains)) + ")"
+                params.extend([f"%{d}%" for d in domains])
+                
+        query += " ORDER BY r.id DESC"
+                
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        result = []
+        for r in rows:
+            d = dict(r)
+            d['University'] = d['uni_name'] or d['University']
+            d['Lat'] = d['uni_lat'] or d['Lat']
+            d['Lon'] = d['uni_lon'] or d['Lon']
+            d['Start Time'] = d['Start_Time']
+            d['H-index'] = d['H_index']
+            d['Application_Status'] = d['Application_Status'] or 'Uncontacted'
+            d['User_Notes'] = d['User_Notes'] or ''
+            d['Priority'] = d['Priority'] or 0
+            d['Source'] = d['Source'] or 'Agent'
+            result.append(d)
+            
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+
+    def handle_update_researcher(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        r_id = data.get('id')
+        if not r_id:
+            self.send_response(400)
+            self.end_headers()
+            return
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        allowed_fields = [
+            'Application_Status', 'User_Notes', 'Priority',
+            'Name', 'university_id', 'Department', 'Title', 'Subject', 
+            'Web', 'H_index', 'Start_Time', 'Methods_Tags', 'Domains_Tags', 'Source'
+        ]
+        updates = []
+        params = []
+        
+        for field in allowed_fields:
+            if field in data:
+                updates.append(f"{field} = ?")
+                params.append(data[field])
+                
+        if updates:
+            query = f"UPDATE researchers SET {', '.join(updates)} WHERE id = ?"
+            params.append(r_id)
+            cursor.execute(query, params)
+            conn.commit()
+            
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success'}).encode('utf-8'))
+
+    def handle_add_researcher(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        allowed_fields = [
+            'Name', 'university_id', 'Department', 'Title', 'Subject', 
+            'Web', 'H_index', 'Start_Time', 'Methods_Tags', 'Domains_Tags', 'Source'
+        ]
+        columns = []
+        placeholders = []
+        params = []
+        
+        for field in allowed_fields:
+            if field in data:
+                columns.append(field)
+                placeholders.append('?')
+                params.append(data[field])
+                
+        if not columns:
+            self.send_response(400)
+            self.end_headers()
+            conn.close()
+            return
+            
+        query = f"INSERT INTO researchers ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+        cursor.execute(query, params)
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success', 'id': new_id}).encode('utf-8'))
+
+    def handle_delete_researcher(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        r_id = data.get('id')
+        if not r_id:
+            self.send_response(400)
+            self.end_headers()
+            return
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM researchers WHERE id = ?", (r_id,))
+        conn.commit()
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success'}).encode('utf-8'))
+
+    def handle_get_logs(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM logs ORDER BY date DESC, id DESC")
+        rows = cursor.fetchall()
+        result = [dict(r) for r in rows]
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+
+    def handle_save_log(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        log_id = data.get('id')
+        date = data.get('date')
+        log_type = data.get('log_type')
+        content_text = data.get('content')
+        researcher_ids = data.get('researcher_ids', [])
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if log_id:
+            cursor.execute("UPDATE logs SET date=?, log_type=?, content=? WHERE id=?", (date, log_type, content_text, log_id))
+        else:
+            cursor.execute("INSERT INTO logs (date, log_type, content) VALUES (?, ?, ?)", (date, log_type, content_text))
+            log_id = cursor.lastrowid
+            
+        cursor.execute("DELETE FROM log_researcher_links WHERE log_id=?", (log_id,))
+        for r_id in researcher_ids:
+            cursor.execute("INSERT INTO log_researcher_links (log_id, researcher_id) VALUES (?, ?)", (log_id, r_id))
+            
+        conn.commit()
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success', 'id': log_id}).encode('utf-8'))
+
+    def handle_delete_log(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        log_id = data.get('id')
+        if not log_id:
+            self.send_response(400)
+            self.end_headers()
+            return
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM logs WHERE id = ?", (log_id,))
+        conn.commit()
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success'}).encode('utf-8'))
+
+    def handle_get_researcher_history(self, query_string):
+        query_params = urllib.parse.parse_qs(query_string, keep_blank_values=True)
+        r_id = query_params.get('id', [None])[0]
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT l.* FROM logs l
+            JOIN log_researcher_links lrl ON l.id = lrl.log_id
+            WHERE lrl.researcher_id = ?
+            ORDER BY l.date DESC, l.id DESC
+        """, (r_id,))
+        rows = cursor.fetchall()
+        result = [dict(r) for r in rows]
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+
+if __name__ == '__main__':
+    init_database_if_needed()
+    port = int(os.environ.get('PORT', 5000))
+    server = HTTPServer(('0.0.0.0', port), RequestHandler)
+    print(f"======================================================")
+    print(f" Find Your Advisor - Platform running on port {port}")
+    print(f" Web UI: http://localhost:{port}")
+    print(f" Zero external pip dependencies. Press Ctrl+C to stop.")
+    print(f"======================================================")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nStopping server.")
+        server.server_close()

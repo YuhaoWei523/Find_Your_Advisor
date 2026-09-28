@@ -1,0 +1,744 @@
+[
+  {
+    "id": 1,
+    "name": "Allen Institute for Brain Science (Allen Institute)",
+    "country": "USA",
+    "lat": 47.6254,
+    "lon": -122.3393
+  },
+  {
+    "id": 2,
+    "name": "Arizona State University (ASU)",
+    "country": "USA",
+    "lat": 33.4242,
+    "lon": -111.9281
+  },
+  {
+    "id": 3,
+    "name": "Boston University (BU)",
+    "country": "USA",
+    "lat": 42.3505,
+    "lon": -71.1054
+  },
+  {
+    "id": 4,
+    "name": "Brown University (Brown)",
+    "country": "USA",
+    "lat": 41.8268,
+    "lon": -71.4025
+  },
+  {
+    "id": 5,
+    "name": "California Institute of Technology (Caltech)",
+    "country": "USA",
+    "lat": 34.1377,
+    "lon": -118.1253
+  },
+  {
+    "id": 6,
+    "name": "Carnegie Mellon University (CMU)",
+    "country": "USA",
+    "lat": 40.4428,
+    "lon": -79.9431
+  },
+  {
+    "id": 7,
+    "name": "Case Western Reserve University (CWRU)",
+    "country": "USA",
+    "lat": 41.5043,
+    "lon": -81.6084
+  },
+  {
+    "id": 8,
+    "name": "Chalmers University of Technology (CTH)",
+    "country": "Sweden",
+    "lat": 57.6896,
+    "lon": 11.9734
+  },
+  {
+    "id": 9,
+    "name": "Cold Spring Harbor Laboratory (CSHL)",
+    "country": "USA",
+    "lat": 40.8659,
+    "lon": -73.4651
+  },
+  {
+    "id": 10,
+    "name": "Columbia University (Columbia)",
+    "country": "USA",
+    "lat": 40.8075,
+    "lon": -73.9626
+  },
+  {
+    "id": 11,
+    "name": "Cornell University (Cornell)",
+    "country": "USA",
+    "lat": 42.4534,
+    "lon": -76.4735
+  },
+  {
+    "id": 12,
+    "name": "Delft University of Technology (TU Delft)",
+    "country": "Netherlands",
+    "lat": 52.0019,
+    "lon": 4.3736
+  },
+  {
+    "id": 13,
+    "name": "Duke University (Duke)",
+    "country": "USA",
+    "lat": 41.5043,
+    "lon": -78.9382
+  },
+  {
+    "id": 14,
+    "name": "ETH Zurich (ETH)",
+    "country": "Switzerland",
+    "lat": 47.3763,
+    "lon": 8.5477
+  },
+  {
+    "id": 15,
+    "name": "Emory University (Emory)",
+    "country": "USA",
+    "lat": 33.7925,
+    "lon": -84.324
+  },
+  {
+    "id": 16,
+    "name": "Flatiron Institute (Flatiron)",
+    "country": "USA",
+    "lat": 40.7397,
+    "lon": -73.9903
+  },
+  {
+    "id": 17,
+    "name": "Free University of Berlin (FU Berlin)",
+    "country": "Germany",
+    "lat": 52.453,
+    "lon": 13.2905
+  },
+  {
+    "id": 18,
+    "name": "French Institute for Research in Computer Science and Automation (Inria)",
+    "country": "France",
+    "lat": 48.8315,
+    "lon": 2.1158
+  },
+  {
+    "id": 19,
+    "name": "French National Centre for Scientific Research (CNRS)",
+    "country": "France",
+    "lat": 48.8472,
+    "lon": 2.3619
+  },
+  {
+    "id": 20,
+    "name": "Georgetown University (Georgetown)",
+    "country": "USA",
+    "lat": 38.9076,
+    "lon": -77.0723
+  },
+  {
+    "id": 21,
+    "name": "Georgia Institute of Technology (Georgia Tech)",
+    "country": "USA",
+    "lat": 33.7756,
+    "lon": -84.3963
+  },
+  {
+    "id": 22,
+    "name": "Graz University of Technology (TU Graz)",
+    "country": "Austria",
+    "lat": 47.0673,
+    "lon": 15.4526
+  },
+  {
+    "id": 23,
+    "name": "Harvard University (Harvard)",
+    "country": "USA",
+    "lat": 42.3657432,
+    "lon": -71.103
+  },
+  {
+    "id": 24,
+    "name": "Imperial College London (ICL)",
+    "country": "UK",
+    "lat": 51.4988,
+    "lon": -0.1749
+  },
+  {
+    "id": 25,
+    "name": "Indiana University Bloomington (IU)",
+    "country": "USA",
+    "lat": 39.1766,
+    "lon": -86.513
+  },
+  {
+    "id": 26,
+    "name": "Janelia Research Campus (Janelia)",
+    "country": "USA",
+    "lat": 39.0718,
+    "lon": -77.4646
+  },
+  {
+    "id": 27,
+    "name": "KTH Royal Institute of Technology (KTH)",
+    "country": "Sweden",
+    "lat": 59.3498,
+    "lon": 18.0707
+  },
+  {
+    "id": 28,
+    "name": "KU Leuven (KUL)",
+    "country": "Belgium",
+    "lat": 50.8798,
+    "lon": 4.7005
+  },
+  {
+    "id": 29,
+    "name": "Karolinska Institutet (KI)",
+    "country": "Sweden",
+    "lat": 59.3473,
+    "lon": 18.0267
+  },
+  {
+    "id": 30,
+    "name": "King's College London (KCL)",
+    "country": "UK",
+    "lat": 51.5115,
+    "lon": -0.116
+  },
+  {
+    "id": 31,
+    "name": "Ludwig Maximilian University of Munich (LMU)",
+    "country": "Germany",
+    "lat": 48.1508,
+    "lon": 11.5802
+  },
+  {
+    "id": 32,
+    "name": "Massachusetts Institute of Technology (MIT)",
+    "country": "USA",
+    "lat": 42.3601,
+    "lon": -71.0942
+  },
+  {
+    "id": 33,
+    "name": "Max Planck Institute for Biological Cybernetics (MPI-BC)",
+    "country": "Germany",
+    "lat": 48.5367,
+    "lon": 9.0583
+  },
+  {
+    "id": 34,
+    "name": "Max Planck Institute for Brain Research (MPI-BR)",
+    "country": "Germany",
+    "lat": 50.1742,
+    "lon": 8.63
+  },
+  {
+    "id": 35,
+    "name": "Max Planck Institute for Human Cognitive and Brain Sciences (MPI-CBS)",
+    "country": "Germany",
+    "lat": 51.3364,
+    "lon": 12.3888
+  },
+  {
+    "id": 36,
+    "name": "McGill University (McGill)",
+    "country": "Canada",
+    "lat": 45.5048,
+    "lon": -73.5772
+  },
+  {
+    "id": 37,
+    "name": "Mila - Quebec Artificial Intelligence Institute (Mila)",
+    "country": "Canada",
+    "lat": 45.5292,
+    "lon": -73.6148
+  },
+  {
+    "id": 38,
+    "name": "New York University (NYU)",
+    "country": "USA",
+    "lat": 40.7295,
+    "lon": -73.9965
+  },
+  {
+    "id": 39,
+    "name": "North Carolina State University (NC State)",
+    "country": "USA",
+    "lat": 35.7847,
+    "lon": -78.6821
+  },
+  {
+    "id": 40,
+    "name": "Northeastern University (NEU)",
+    "country": "USA",
+    "lat": 42.3398,
+    "lon": -71.0892
+  },
+  {
+    "id": 41,
+    "name": "Northwestern University (NU)",
+    "country": "USA",
+    "lat": 42.0565,
+    "lon": -87.6753
+  },
+  {
+    "id": 42,
+    "name": "Ohio State University (OSU)",
+    "country": "USA",
+    "lat": 40.0021,
+    "lon": -83.0135
+  },
+  {
+    "id": 43,
+    "name": "Paris-Saclay University (Paris-Saclay)",
+    "country": "France",
+    "lat": 48.7121501,
+    "lon": 2.1735087
+  },
+  {
+    "id": 44,
+    "name": "Pennsylvania State University (Penn State)",
+    "country": "USA",
+    "lat": 40.7982,
+    "lon": -77.8599
+  },
+  {
+    "id": 45,
+    "name": "Princeton University (Princeton)",
+    "country": "USA",
+    "lat": 40.344,
+    "lon": -74.6514
+  },
+  {
+    "id": 46,
+    "name": "Purdue University (Purdue)",
+    "country": "USA",
+    "lat": 40.430028,
+    "lon": -86.9212
+  },
+  {
+    "id": 47,
+    "name": "Rice University (Rice)",
+    "country": "USA",
+    "lat": 29.7174,
+    "lon": -95.4018
+  },
+  {
+    "id": 48,
+    "name": "Rockefeller University (Rockefeller)",
+    "country": "USA",
+    "lat": 40.7628,
+    "lon": -73.956
+  },
+  {
+    "id": 49,
+    "name": "Rutgers University (Rutgers)",
+    "country": "USA",
+    "lat": 40.4982,
+    "lon": -74.4468
+  },
+  {
+    "id": 50,
+    "name": "Scripps Research Institute (Scripps)",
+    "country": "USA",
+    "lat": 32.8943,
+    "lon": -117.247
+  },
+  {
+    "id": 51,
+    "name": "Sorbonne University (Sorbonne)",
+    "country": "France",
+    "lat": 48.8468,
+    "lon": 2.347
+  },
+  {
+    "id": 52,
+    "name": "Stanford University (Stanford)",
+    "country": "USA",
+    "lat": 37.4313138,
+    "lon": -122.1693654
+  },
+  {
+    "id": 53,
+    "name": "Stony Brook University (SBU)",
+    "country": "USA",
+    "lat": 40.9142,
+    "lon": -73.1234
+  },
+  {
+    "id": 54,
+    "name": "Technical University of Berlin (TU Berlin)",
+    "country": "Germany",
+    "lat": 52.512,
+    "lon": 13.3262
+  },
+  {
+    "id": 55,
+    "name": "Technical University of Munich (TUM)",
+    "country": "Germany",
+    "lat": 48.1499,
+    "lon": 11.5678
+  },
+  {
+    "id": 56,
+    "name": "Tufts University (Tufts)",
+    "country": "USA",
+    "lat": 42.4075,
+    "lon": -71.119
+  },
+  {
+    "id": 57,
+    "name": "University College London (UCL)",
+    "country": "UK",
+    "lat": 51.5246,
+    "lon": -0.134
+  },
+  {
+    "id": 58,
+    "name": "University of Alberta (UAlberta)",
+    "country": "Canada",
+    "lat": 53.5232,
+    "lon": -113.5263
+  },
+  {
+    "id": 59,
+    "name": "University of Arizona (UArizona)",
+    "country": "USA",
+    "lat": 32.2319,
+    "lon": -110.9501
+  },
+  {
+    "id": 60,
+    "name": "University of Basel (UNIBAS)",
+    "country": "Switzerland",
+    "lat": 47.5584,
+    "lon": 7.5835
+  },
+  {
+    "id": 61,
+    "name": "University of Bern (UNIBE)",
+    "country": "Switzerland",
+    "lat": 46.9504,
+    "lon": 7.4381
+  },
+  {
+    "id": 62,
+    "name": "University of California, Berkeley (UC Berkeley)",
+    "country": "USA",
+    "lat": 37.8715,
+    "lon": -122.2595
+  },
+  {
+    "id": 63,
+    "name": "University of California, Davis (UC Davis)",
+    "country": "USA",
+    "lat": 38.5382,
+    "lon": -121.7617
+  },
+  {
+    "id": 64,
+    "name": "University of California, Irvine (UCI)",
+    "country": "USA",
+    "lat": 33.6405,
+    "lon": -117.8443
+  },
+  {
+    "id": 65,
+    "name": "University of California, Los Angeles (UCLA)",
+    "country": "USA",
+    "lat": 34.0689,
+    "lon": -118.4452
+  },
+  {
+    "id": 66,
+    "name": "University of California, San Diego (UCSD)",
+    "country": "USA",
+    "lat": 32.8801,
+    "lon": -117.234
+  },
+  {
+    "id": 67,
+    "name": "University of California, San Francisco (UCSF)",
+    "country": "USA",
+    "lat": 37.7631,
+    "lon": -122.4581
+  },
+  {
+    "id": 68,
+    "name": "University of Cambridge (Cambridge)",
+    "country": "UK",
+    "lat": 52.2043,
+    "lon": 0.1149
+  },
+  {
+    "id": 69,
+    "name": "University of Chicago (UChicago)",
+    "country": "USA",
+    "lat": 41.7886,
+    "lon": -87.5987
+  },
+  {
+    "id": 70,
+    "name": "University of Colorado Boulder (CU Boulder)",
+    "country": "USA",
+    "lat": 40.0073,
+    "lon": -105.266
+  },
+  {
+    "id": 71,
+    "name": "University of Edinburgh (Edinburgh)",
+    "country": "UK",
+    "lat": 55.9445,
+    "lon": -3.1892
+  },
+  {
+    "id": 72,
+    "name": "University of Geneva (UNIGE)",
+    "country": "Switzerland",
+    "lat": 46.1997,
+    "lon": 6.1438
+  },
+  {
+    "id": 73,
+    "name": "University of Georgia (UGA)",
+    "country": "USA",
+    "lat": 33.948,
+    "lon": -83.3773
+  },
+  {
+    "id": 74,
+    "name": "University of Illinois Chicago (UIC)",
+    "country": "USA",
+    "lat": 41.8711,
+    "lon": -87.6495
+  },
+  {
+    "id": 75,
+    "name": "University of Illinois Urbana-Champaign (UIUC)",
+    "country": "USA",
+    "lat": 40.102,
+    "lon": -88.2272
+  },
+  {
+    "id": 76,
+    "name": "University of Lausanne (UNIL)",
+    "country": "Switzerland",
+    "lat": 46.5226,
+    "lon": 6.5772
+  },
+  {
+    "id": 77,
+    "name": "University of Manchester (UoM)",
+    "country": "UK",
+    "lat": 53.4668,
+    "lon": -2.2339
+  },
+  {
+    "id": 78,
+    "name": "University of Maryland, College Park (UMD)",
+    "country": "USA",
+    "lat": 38.9869,
+    "lon": -76.9426
+  },
+  {
+    "id": 79,
+    "name": "University of Michigan (UMich)",
+    "country": "USA",
+    "lat": 42.278,
+    "lon": -83.7382
+  },
+  {
+    "id": 80,
+    "name": "University of Minnesota (UMN)",
+    "country": "USA",
+    "lat": 44.974,
+    "lon": -93.2277
+  },
+  {
+    "id": 81,
+    "name": "University of North Carolina at Chapel Hill (UNC)",
+    "country": "USA",
+    "lat": 35.9049,
+    "lon": -79.0469
+  },
+  {
+    "id": 82,
+    "name": "University of North Carolina at Charlotte (UNC Charlotte)",
+    "country": "USA",
+    "lat": 35.3071,
+    "lon": -80.7302
+  },
+  {
+    "id": 83,
+    "name": "University of Notre Dame (ND)",
+    "country": "USA",
+    "lat": 41.7056,
+    "lon": -86.2353
+  },
+  {
+    "id": 84,
+    "name": "University of Oxford (Oxford)",
+    "country": "UK",
+    "lat": 51.7548,
+    "lon": -1.2544
+  },
+  {
+    "id": 85,
+    "name": "University of Pennsylvania (UPenn)",
+    "country": "USA",
+    "lat": 39.9522,
+    "lon": -75.1932
+  },
+  {
+    "id": 86,
+    "name": "University of Pittsburgh (Pitt)",
+    "country": "USA",
+    "lat": 40.4443,
+    "lon": -79.9532
+  },
+  {
+    "id": 87,
+    "name": "University of Rennes (UR1)",
+    "country": "France",
+    "lat": 48.1173,
+    "lon": -1.6778
+  },
+  {
+    "id": 88,
+    "name": "University of Southern California (USC)",
+    "country": "USA",
+    "lat": 34.0224,
+    "lon": -118.2851
+  },
+  {
+    "id": 89,
+    "name": "University of Texas Health Science Center at Houston (UTHealth)",
+    "country": "USA",
+    "lat": 29.7027,
+    "lon": -95.397
+  },
+  {
+    "id": 90,
+    "name": "University of Texas Health Science Center at San Antonio (UT Health San Antonio)",
+    "country": "USA",
+    "lat": 29.5085,
+    "lon": -98.5724
+  },
+  {
+    "id": 91,
+    "name": "University of Texas Southwestern Medical Center (UTSW)",
+    "country": "USA",
+    "lat": 32.8143,
+    "lon": -96.8407
+  },
+  {
+    "id": 92,
+    "name": "University of Texas at Austin (UT Austin)",
+    "country": "USA",
+    "lat": 30.2849,
+    "lon": -97.7341
+  },
+  {
+    "id": 93,
+    "name": "University of Toronto (U of T)",
+    "country": "Canada",
+    "lat": 43.6629,
+    "lon": -79.3957
+  },
+  {
+    "id": 94,
+    "name": "University of Tübingen (Uni Tübingen)",
+    "country": "Germany",
+    "lat": 48.5340595,
+    "lon": 9.0712444
+  },
+  {
+    "id": 95,
+    "name": "University of Utah (U of U)",
+    "country": "USA",
+    "lat": 40.7649,
+    "lon": -111.8421
+  },
+  {
+    "id": 96,
+    "name": "University of Virginia (UVA)",
+    "country": "USA",
+    "lat": 38.0336,
+    "lon": -78.508
+  },
+  {
+    "id": 97,
+    "name": "University of Washington (UW)",
+    "country": "USA",
+    "lat": 47.6553,
+    "lon": -122.3035
+  },
+  {
+    "id": 98,
+    "name": "University of Wisconsin-Madison (UW-Madison)",
+    "country": "USA",
+    "lat": 43.0766,
+    "lon": -89.4125
+  },
+  {
+    "id": 99,
+    "name": "University of Zurich (UZH)",
+    "country": "Switzerland",
+    "lat": 47.3743,
+    "lon": 8.551
+  },
+  {
+    "id": 100,
+    "name": "Université Toulouse III - Paul Sabatier (UPS)",
+    "country": "France",
+    "lat": 43.5619,
+    "lon": 1.4646
+  },
+  {
+    "id": 101,
+    "name": "Vanderbilt University (Vandy)",
+    "country": "USA",
+    "lat": 36.1447,
+    "lon": -86.8027
+  },
+  {
+    "id": 102,
+    "name": "Washington University in St. Louis (WashU)",
+    "country": "USA",
+    "lat": 38.6488,
+    "lon": -90.3108
+  },
+  {
+    "id": 103,
+    "name": "Wyss Center for Bio and Neuroengineering (Wyss)",
+    "country": "Switzerland",
+    "lat": 46.2223,
+    "lon": 6.1477
+  },
+  {
+    "id": 104,
+    "name": "Yale University (Yale)",
+    "country": "USA",
+    "lat": 41.3163,
+    "lon": -72.9223
+  },
+  {
+    "id": 105,
+    "name": "École Normale Supérieure (ENS Paris)",
+    "country": "France",
+    "lat": 48.8427,
+    "lon": 2.3444
+  },
+  {
+    "id": 106,
+    "name": "École Polytechnique Fédérale de Lausanne (EPFL)",
+    "country": "Switzerland",
+    "lat": 46.5191,
+    "lon": 6.5667
+  }
+]
