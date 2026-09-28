@@ -19,17 +19,17 @@
 
 ## 📖 English Introduction
 
-Applying for PhD or postdoctoral positions in multidisciplinary fields (e.g., **NeuroAI, Computational Neuroscience, Brain-Computer Interfaces, Neuroengineering, Cognitive AI**) is notoriously complex. Research faculty are distributed across disconnected departments—Computer Science, Bioengineering, Neuroscience, Psychology, and Medical Imaging institutes. Tracking lab opening years (New PIs with fresh funding), Google Scholar metrics, personal notes, and email correspondence typically results in chaotic, disjointed spreadsheets.
+Applying for PhD or postdoctoral positions across academia (**Robotics, Quantum Computing, NLP, Computational Biology, NeuroAI, Materials Science, Economics, etc.**) is notoriously challenging. Frontier research is scattered across fragmented departments—Computer Science, Engineering, Natural Sciences, Medicine, and specialized interdisciplinary institutes. Crucial recruitment intelligence—such as lab opening years (New PIs with fresh funding), Google Scholar metrics, personal impressions, and application progress—frequently gets lost in disjointed spreadsheets.
 
-**Find Your Advisor** is a modern, local-first academic discovery platform and application CRM. It pairs a high-performance web interface and GIS map explorer with an autonomous **Antigravity Multi-Agent Mining Skill** that automatically crawls department directories, extracts faculty credentials and bibliometrics, and maintains a clean, deduplicated SQLite database on your local machine.
+**Find Your Advisor** is a modern, local-first academic advisor discovery and application CRM platform. Designed to be **completely discipline-agnostic and institution-flexible**, it allows you to input any academic field and target university list. It pairs a high-performance web interface and GIS map explorer with an autonomous **Antigravity Multi-Agent Mining Skill** that automatically crawls multidisciplinary department directories, extracts faculty credentials and bibliometrics, and maintains a clean, deduplicated SQLite database on your local machine.
 
 ---
 
 ## 🇨🇳 中文简介
 
-在跨学科前沿领域（如 **NeuroAI、计算神经科学、脑机接口 BCI、神经工程、认知智能**）寻找博士生导师或博后岗位往往面临巨大挑战。教授们分散在计算机系（CS/AI）、生物医学工程系（BME）、脑与认知科学系（BCS/Neuroscience）、心理学系以及各大神经疾病医学研究所中。此外，课题组成立年份（拥有启动经费与大量招生名额的新 PI）、Google Scholar 引用数与 H-index、邮件联系进度与套瓷日志经常散落在 Excel 与笔记软件中，难以系统复盘。
+在学术界（如 **机器人与具身智能、量子计算、大语言模型与 NLP、计算生物学、神经科学/NeuroAI、新材料、经济金融等任意学科**）寻找博士导师或博后岗位往往面临巨大挑战。前沿研究分散在不同的学院、交叉学科研究所与附属中心中。导师实验室成立年份（拥有启动经费与招生指标的新 PI）、Google Scholar 引用与 H-index、邮件联系进度与套瓷日志经常散落在 Excel 与笔记软件中，难以系统复盘。
 
-**Find Your Advisor** 是一款完全本地化、隐私友好的学术导师雷达与申请 CRM 平台。它不仅提供现代化的交互界面、ESRI 全球地理 GIS 地图探索和带 `@导师` 智能提及的双向套瓷日记，还完整内置了基于 **Google Antigravity** 的多智能体爬虫与挖掘 Skill，能够自主按大学/系所深挖教授信息、自动化提取学者引用并建立结构化本地数据库。
+**Find Your Advisor** 是一款完全本地化、隐私友好且**不限学科、不限院校名单**的通用学术导师发现与申请 CRM 平台。它提供现代化的交互界面、ESRI 全球地理 GIS 地图探索和带 `@导师` 智能提及的双向套瓷日记，并完整内置了基于 **Google Antigravity** 的通用多智能体数据挖掘 Skill，支持由用户自定义输入目标学科、研究关键词与院校清单，自主进行多学院深度穿透挖掘、自动化提取学者引用并建立结构化本地数据库。
 
 ---
 
@@ -126,8 +126,8 @@ flowchart TD
 ```
 
 ### Triggering the Skill in Antigravity
-You can ask your Antigravity assistant:
-> *"Use the `advisor-data-miner` skill to search for faculty working on Brain-Computer Interfaces and NeuroAI across Oxford, Cambridge, and Imperial College London, and ingest the results into my database."*
+You can ask your Antigravity assistant for ANY field or university list:
+> *"Use the `advisor-data-miner` skill to search for faculty working on [Your Target Field, e.g. Robotics & Embodied AI] across [Your Target Universities, e.g. Stanford, UC Berkeley, CMU, ETH Zurich], and ingest the results into my database."*
 
 ### Manual Ingestion of Custom Crawled Batches
 If you have generated JSON researcher files via custom scripts or AI agents:

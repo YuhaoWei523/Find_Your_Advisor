@@ -124,6 +124,17 @@ def ingest_item(cursor: sqlite3.Cursor, item: Dict[str, Any], uni_map: Dict[str,
             uni_lat = m_lat
         if uni_lon is None:
             uni_lon = m_lon
+    elif uni_name:
+        # Dynamically register newly encountered university for any discipline/region
+        cursor.execute(
+            "INSERT OR IGNORE INTO universities (name, country, lat, lon) VALUES (?, ?, ?, ?)",
+            (uni_name, item.get("Country", "Other"), uni_lat, uni_lon)
+        )
+        cursor.execute("SELECT id, name, lat, lon FROM universities WHERE LOWER(name) = ?", (norm_uni,))
+        new_row = cursor.fetchone()
+        if new_row:
+            uni_id = new_row['id']
+            uni_map[norm_uni] = (new_row['id'], new_row['name'], new_row['lat'], new_row['lon'])
 
     institute = item.get("Institute", "")
     department = item.get("Department", "")

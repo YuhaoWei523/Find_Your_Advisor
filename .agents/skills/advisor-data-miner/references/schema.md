@@ -77,32 +77,32 @@ Many-to-many relationship linking outreach log entries with specific researcher 
 
 ---
 
-## 2. Standardized Tag Taxonomy
+## 2. Adaptive Multi-Tag Taxonomy (Discipline-Agnostic)
 
-To enable clean multi-select filtering and cross-filtering in the user interface, tags must be selected from the following canonical taxonomies:
+To enable flexible multi-select filtering and boolean cross-filtering in the user interface, each researcher record supports two orthogonal tag collections:
 
-### Methods Taxonomy
-* **`NeuroAI / Machine Learning`**: Artificial neural networks, deep learning models of neural circuits, foundation models, reinforcement learning in brain systems.
-* **`Brain Modeling`**: Biophysical modeling, dynamical systems, spiking network simulations, theoretical neuroscience.
-* **`BCI`**: Brain-Computer Interfaces, neural decoders, closed-loop neuroprosthetics, invasive/non-invasive motor decoding.
-* **`Electrophysiology`**: Patch clamp, multielectrode arrays (MEA), Neuropixels, intra-cranial EEG, single-unit recordings.
-* **`Optical Imaging`**: Two-photon / multi-photon calcium imaging, voltage imaging, optogenetics, light-sheet microscopy.
-* **`Neuroimaging`**: Functional MRI (fMRI), structural MRI, PET, MEG, diffuse optical tomography.
-* **`Neuromodulation`**: TMS, tDCS, deep brain stimulation (DBS), ultrasound neuromodulation.
-* **`Genomics / Bioinformatics`**: Single-cell RNA sequencing, spatial transcriptomics, neurogenetics.
-* **`SNN / Neuromorphic`**: Spiking neural networks, neuromorphic hardware chips (e.g. Loihi, SpiNNaker), event-based sensing.
+1. **`Methods_Tags`**: Methodologies, algorithmic paradigms, analytical tools, or experimental apparatus.
+2. **`Domains_Tags`**: Problem applications, anatomical/physical systems, or theoretical domains.
 
-### Domains Taxonomy
-* **`Visual`**: Visual cortex processing, object recognition, ventral stream, retinotopic mapping.
-* **`Motor`**: Motor cortex, motor control, cerebellum, basal ganglia, locomotion, reaching.
-* **`Memory`**: Hippocampus, memory consolidation, spatial navigation, place/grid cells.
-* **`Decision Making`**: Prefrontal cortex, reward processing, economic choice, value-based decision making.
-* **`Attention`**: Top-down/bottom-up attention, parietal cortex, sensory gating.
-* **`Auditory`**: Auditory cortex, speech perception, sound localization, acoustic processing.
-* **`Linguistic`**: Language comprehension, neural basis of syntax, semantics, speech production.
-* **`Emotion / Social`**: Amygdala, social cognition, empathy, affective neuroscience.
-* **`Sleep / Circadian`**: Sleep states, circadian rhythms, slow-wave sleep, sleep replay.
-* **`Disease / Clinical`**: Alzheimer's, Parkinson's, epilepsy, psychiatric disorders, neurodegeneration.
+The database and web UI automatically extract unique tags from the `researchers` table and dynamically render them as filterable checkbox pills.
+
+### Canonical Taxonomy Examples by Field
+
+#### A. Robotics & Autonomous Systems
+- **Methods**: `Reinforcement Learning`, `Motion Planning`, `Sim2Real`, `Optimal Control`, `Tactile Sensing`, `Computer Vision`, `Imitation Learning`
+- **Domains**: `Robotic Manipulation`, `Bipedal Locomotion`, `Aerial Robotics`, `Autonomous Driving`, `Surgical Robotics`, `Soft Robotics`
+
+#### B. Quantum Information Science
+- **Methods**: `Superconducting Circuits`, `Trapped Ions`, `Neutral Atoms`, `Photonic Quantum`, `Quantum Error Correction`, `Hamiltonian Simulation`
+- **Domains**: `Quantum Computing`, `Quantum Sensing`, `Quantum Cryptography`, `Quantum Many-Body Physics`
+
+#### C. Natural Language Processing & AI
+- **Methods**: `LLMs / Foundation Models`, `RAG`, `Alignment / RLHF`, `Mechanistic Interpretability`, `Knowledge Representation`, `Parameter-Efficient Fine-Tuning`
+- **Domains**: `Dialogue Systems`, `Reasoning`, `Code Intelligence`, `Multilingual NLP`, `Biomedical NLP`
+
+#### D. Computational Neuroscience & NeuroAI
+- **Methods**: `NeuroAI / Machine Learning`, `Brain Modeling`, `BCI`, `Electrophysiology`, `Optical Imaging`, `Neuroimaging`, `Neuromodulation`, `Genomics / Bioinformatics`, `SNN / Neuromorphic`
+- **Domains**: `Visual`, `Motor`, `Memory`, `Decision Making`, `Attention`, `Auditory`, `Linguistic`, `Emotion / Social`, `Sleep / Circadian`, `Disease / Clinical`
 
 ---
 

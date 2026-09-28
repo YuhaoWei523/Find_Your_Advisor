@@ -1,167 +1,276 @@
 ---
 name: advisor-data-miner
 description: >-
-  Autonomous multi-agent workflow for discovering, scraping, enriching, and indexing academic faculty (Principal Investigators / PIs) across global university departments. Use when searching for PhD/Postdoc advisors, crawling faculty directories across multidisciplinary departments, extracting Google Scholar bibliometrics, identifying lab opening years (New PIs 2025-2027), and ingesting structured researcher profiles into SQLite.
+  Universal autonomous multi-agent workflow for discovering, scraping, enriching, and indexing academic faculty (Principal Investigators / PIs) across ANY academic discipline and ANY list of universities. Use when conducting literature or advisor searches for PhD/Postdoc applications, mapping multidisciplinary departments, extracting Google Scholar metrics, detecting lab opening years (New PIs 2024-2027), and ingesting structured researcher profiles into SQLite.
 ---
 
-# Advisor Data Miner — Autonomous Multi-Agent Academic Mining Workflow
+# Universal Advisor Data Miner — Discipline-Agnostic Academic Discovery Workflow
 
-This skill documents the end-to-end, multi-agent workflow for collecting, enriching, and maintaining an academic researcher database. It orchestrates subagents across university faculty directories, extracts deep academic profiles (education, research keywords, lab websites, Scholar metrics, lab establishment years), classifies research into standardized taxonomies, and ingests deduplicated records into a local SQLite database for the **Find Your Advisor** CRM platform.
+This skill defines a generalizable, autonomous multi-agent workflow for identifying, researching, and indexing academic faculty (Principal Investigators / PIs) for graduate school and postdoctoral recruitment. 
+
+It is designed to be **completely discipline-agnostic and institution-agnostic**: whether you are researching advisors in **Robotics, Quantum Computing, Computational Biology, NeuroAI, Macroeconomics, Materials Science, or Natural Language Processing**, this skill provides the step-by-step methodology to map multidisciplinary university structures, crawl faculty directories, extract deep bibliometric and biographical intelligence, detect newly launched labs (New PIs), and ingest deduplicated records into a local SQLite database for the **Find Your Advisor** CRM platform.
 
 ---
 
-## Architecture Overview
+## 🏛️ Architectural Overview
+
+Modern research is inherently cross-disciplinary. Frontier work rarely resides within a single traditional department. This skill uses a **Two-Tier Agent Hierarchy** to thoroughly search institutions without overwhelming rate limits:
 
 ```
-                               +-----------------------------+
-                               |     Orchestrator Agent      |
-                               | (Batch controller, 3-5 unis)|
-                               +--------------+--------------+
-                                              |
-                   +--------------------------+--------------------------+
-                   |                          |                          |
-                   v                          v                          v
-       +-----------------------+  +-----------------------+  +-----------------------+
-       |   Data Miner (Uni A)  |  |   Data Miner (Uni B)  |  |   Data Miner (Uni C)  |
-       |  CS / BioE / Neuro /  |  |  CS / BioE / Neuro /  |  |  CS / BioE / Neuro /  |
-       |     Psych / Med       |  |     Psych / Med       |  |     Psych / Med       |
-       +-----------+-----------+  +-----------+-----------+  +-----------+-----------+
-                   |                          |                          |
-                   v                          v                          v
-             [batch_A.json]             [batch_B.json]             [batch_C.json]
-                   +--------------------------+--------------------------+
-                                              |
-                                              v
-                              +-------------------------------+
-                              |    scripts/ingest.py Engine   |
-                              | - Schema Validation           |
-                              | - Geocoding & Lat/Lon Map     |
-                              | - Deduplication (Name + Uni)  |
-                              | - SQLite Transaction Ingest   |
-                              +---------------+---------------+
-                                              |
-                                              v
-                                      [ neuroai.db ]
+                           +----------------------------------------+
+                           |           User Request / Input         |
+                           | - Target Discipline & Keywords         |
+                           | - Target Universities (List or File)   |
+                           +-------------------+--------------------+
+                                               |
+                                               v
+                           +----------------------------------------+
+                           |          Orchestrator Agent            |
+                           | - Batch queue controller (3-5 unis)    |
+                           | - Subagent lifecycle supervisor        |
+                           +-------------------+--------------------+
+                                               |
+                  +----------------------------+----------------------------+
+                  |                            |                            |
+                  v                            v                            v
+      +-----------------------+    +-----------------------+    +-----------------------+
+      |  Worker Miner (Uni A) |    |  Worker Miner (Uni B) |    |  Worker Miner (Uni C) |
+      | 1. Cross-dept mapping |    | 1. Cross-dept mapping |    | 1. Cross-dept mapping |
+      | 2. Directory roster   |    | 2. Directory roster   |    | 2. Directory roster   |
+      | 3. Scholar metrics    |    | 3. Scholar metrics    |    | 3. Scholar metrics    |
+      | 4. New PI & openings  |    | 4. New PI & openings  |    | 4. New PI & openings  |
+      | 5. Adaptive tagging   |    | 5. Adaptive tagging   |    | 5. Adaptive tagging   |
+      +-----------+-----------+    +-----------+-----------+    +-----------+-----------+
+                  |                            |                            |
+                  v                            v                            v
+            [uni_A.json]                 [uni_B.json]                 [uni_C.json]
+                  +----------------------------+----------------------------+
+                                               |
+                                               v
+                               +--------------------------------+
+                               |    scripts/ingest.py Engine    |
+                               | - Universal Schema Validation  |
+                               | - Dynamic University & Geocode |
+                               | - Deduplication (Name + Uni)   |
+                               | - Preserves Private CRM Notes  |
+                               +---------------+----------------+
+                                               |
+                                               v
+                                       [ neuroai.db ]
 ```
 
 ---
 
-## Step 1: Target Definition & Target Universities
+## 🎯 Step 1: Input Parameterization (Discipline & School Input)
 
-1. **Target Research Scope**:
-   - Primary: Computational Neuroscience, AI for Neuroscience (NeuroAI), Brain-Computer Interfaces (BCI), Neuroengineering, Cognitive AI.
-   - Secondary: Theoretical Neuroscience, Neuroimaging, Neuromorphic Computing, Electrophysiology, Biophysical Modeling.
-2. **Target Departments to Sweep**:
-   - Faculty members in these fields often hold primary or joint appointments across multiple departments. For each institution, sweep:
-     - **Computer Science & AI / EECS** (Machine Learning, Vision, Neural Decoders).
-     - **Biomedical Engineering / Bioengineering** (Neural Engineering, BCI, Neuro-implants).
-     - **Neuroscience / Brain & Cognitive Sciences** (Systems & Computational Labs).
-     - **Psychology / Cognitive Science** (Computational Cognitive Science).
-     - **Specialized Institutes** (e.g., CSAIL, McGovern, Picower, Wu Tsai, Bio-X, Gatsby).
-3. **University Target List**:
-   - Maintain canonical list of target institutions in `uni_list.txt`.
+Before launching mining tasks, define the search configuration:
+
+| Parameter | Description | Examples |
+| :--- | :--- | :--- |
+| `TARGET_DISCIPLINE` | Core research field. | `"Robotics & Embodied AI"`, `"Quantum Computing"`, `"NeuroAI"`, `"Macroeconomics"` |
+| `METHOD_KEYWORDS` | Core technical methods & tools. | Robotics: `[Reinforcement Learning, Motion Planning, Sim2Real, Computer Vision]`<br>Quantum: `[Superconducting Qubits, Quantum Error Correction, Neutral Atoms]` |
+| `DOMAIN_KEYWORDS` | Applications & problem areas. | Robotics: `[Manipulation, Bipedal Locomotion, Surgical Robotics]`<br>Quantum: `[Quantum Simulation, Quantum Cryptography, Quantum Algorithms]` |
+| `TARGET_SCHOOLS` | List of target institutions. | Read from `uni_list.txt`, a custom text file, or inline prompt. |
+| `ROLES_FILTER` | Academic ranks to target. | Default: `[Assistant Professor, Associate Professor, Full Professor, Research Faculty]`. Filter out adjuncts, lecturers, and staff. |
+| `RECRUITMENT_WINDOW` | Target opening years. | High-priority New PIs: `2024`, `2025`, `2026`, `2027` (Incoming). |
 
 ---
 
-## Step 2: Multi-Agent Batch Orchestration
+## 🗺️ Step 2: Universal Cross-Department & Institute Mapping Strategy
 
-To avoid search rate limits, IP blocking, and context window exhaustion, invoke subagents in **batches of 3 to 5 universities**.
+To ensure high recall, the agent must not limit its search to a single obvious department. For ANY discipline, execute the following 3-level directory mapping:
 
-### Orchestrator Prompt Template
+### 1. Primary Home Department
+Locate the traditional disciplinary anchor at the target university:
+- *Computer Science / Electrical & Computer Engineering* (for AI, Algorithms, Systems, Hardware).
+- *Mechanical / Aerospace / Biomedical Engineering* (for Robotics, Biomechanics, Devices).
+- *Physics / Applied Physics / Materials Science* (for Quantum, Photonics, Nanotechnology).
+- *Biological Sciences / Neuroscience / Genetics* (for Life Sciences, Systems Biology).
+- *Economics / Finance / Public Policy* (for Social Sciences).
+
+### 2. Sister & Adjacent Departments
+Identify departments where faculty develop overlapping methodologies:
+- Example: NLP & Machine Learning researchers frequently hold primary appointments in **Linguistics**, **Information Schools (iSchool)**, **Statistics**, or **Data Science Institutes**.
+- Example: Robotics researchers often span **Computer Science**, **Mechanical Engineering**, and **Electrical Engineering**.
+- Example: Computational Biology researchers span **Computer Science**, **Biomedical Engineering**, **Biostatistics**, and **Medical School Genetics**.
+
+### 3. Interdisciplinary Research Institutes & Centers (Frontier Hubs)
+Top worldwide universities concentrate multidisciplinary talent in dedicated research centers. The agent should execute a search to uncover institute pages:
+```text
+Query pattern:
+site:<university_domain> ("institute" OR "center" OR "initiative") "<TARGET_DISCIPLINE_KEYWORD>"
+```
+*Examples of such hubs*:
+- MIT: CSAIL, Media Lab, McGovern, Koch Institute
+- Stanford: HAI (Human-Centered AI), Bio-X, Wu Tsai, Q-FARM (Quantum)
+- UC Berkeley: BAIR (Berkeley AI Research), QB3, Redwood Center
+- CMU: Robotics Institute (RI), Language Technologies Institute (LTI), MLD
+
+---
+
+## 🔎 Step 3: Faculty Roster Crawling & Relevance Filtering
+
+Once department directories or institute people pages are reached:
+
+1. **Locate Faculty Directory Pages**:
+   - Query pattern: `site:<university_domain> <department_name> ("faculty" OR "people" OR "directory" OR "professors")`
+2. **Filter by Rank**:
+   - Select Tenured / Tenure-Track faculty:
+     - **Assistant Professor** (crucial target: usually actively hiring with grant support).
+     - **Associate Professor** (established lab, high throughput, mature projects).
+     - **Full Professor / Chair Professor** (domain leaders, large groups).
+   - Filter out: Lecturers, teaching-only professors, adjuncts, visiting scholars, postdocs, and administrative coordinators (unless specified).
+3. **Filter by Topic Relevance**:
+   - Match the professor's bio, lab keywords, and recent publications against `METHOD_KEYWORDS` and `DOMAIN_KEYWORDS`.
+   - Exclude faculty whose work is outside the user's research scope.
+
+---
+
+## 🧬 Step 4: Deep Profile Enrichment & Scholar Intelligence
+
+For each identified candidate, extract comprehensive intelligence across 4 dimensions:
+
+### A. Google Scholar Bibliometrics
+- Query: `"[Professor Full Name]" "[Target University]"` on Google Scholar.
+- Extract:
+  - Total Citations (`citedby`)
+  - All-time `H-index`
+  - Format: `"<h-index> (<total_citations>)"` (e.g., `"28 (3850)"`).
+- **Rate-Limit & Anti-Bot Fallback**:
+  - If Google Scholar returns a CAPTCHA or blocking response, **never stall the batch**. Set `"H-index": "Unknown"` and proceed immediately.
+
+### B. Personal Lab Website & Active Openings
+- Locate the official lab website (often distinct from the generic departmental profile).
+- Inspect pages like `/join`, `/openings`, `/prospective-students`, `/contact`, or `/news`.
+- Extract recruitment status notes into the `"Other"` field:
+  - e.g., *"Actively seeking 2 PhD students for Fall 2026 in Embodied AI"*, *"Funded postdoc opening available"*, *"Please email with CV and research statement"*.
+
+### C. Lab Launch Year & "New PI" Detection (新晋导师雷达)
+- New Principal Investigators (within their first 1–3 years of appointment) are the highest-leverage targets for graduate applicants because they possess fresh startup funding, unallocated student lines, and direct hands-on mentoring bandwidth.
+- **Detection signals**:
+  - Department appointment announcement date.
+  - Ph.D. completion year (typically 1–4 years prior for postdocs transitioning to faculty).
+  - Explicit start date on CV / website (e.g., *"Joined the department in Fall 2025"*).
+- **Classification**:
+  - **New PI**: Lab established in **2024, 2025, or 2026** (`badge-new`).
+  - **Incoming PI**: Appointment commencing in **2027 or later** (`badge-incoming`).
+
+### D. Academic Pedigree & Lineage
+- Extract educational milestones:
+  - `Undergraduate School`, `Master`, `Phd` (degree institution + year), `Postdoc` (training lab + institution).
+  - Helps applicants evaluate mentorship heritage, lab culture, and pedigree alignment.
+
+---
+
+## 🏷️ Step 5: Adaptive Multi-Tagging Protocol (自适应双轨打标)
+
+Regardless of the target academic field, researchers must be categorized into two orthogonal tag sets:
+
+```text
+Methods_Tags: 1-3 core methodologies, algorithms, tools, or physical techniques.
+Domains_Tags: 1-3 application systems, theoretical sub-domains, or biological/physical targets.
+```
+
+### Examples Across Diverse Fields
+
+#### Example 1: Robotics & Autonomous Systems
+- **Methods Tags**: `Reinforcement Learning`, `Motion Planning`, `Sim2Real`, `Optimal Control`, `Tactile Sensing`, `Computer Vision`
+- **Domains Tags**: `Bipedal Locomotion`, `Robotic Manipulation`, `Aerial Robotics`, `Autonomous Driving`, `Surgical Robotics`
+
+#### Example 2: Quantum Information Science & Technology
+- **Methods Tags**: `Superconducting Circuits`, `Trapped Ions`, `Neutral Atoms`, `Photonic Quantum`, `Quantum Error Correction`, `Hamiltonian Simulation`
+- **Domains Tags**: `Quantum Computing`, `Quantum Sensing`, `Quantum Cryptography`, `Quantum Many-Body Physics`
+
+#### Example 3: Natural Language Processing & AI
+- **Methods Tags**: `LLM / Foundation Models`, `RAG`, `RLHF / Alignment`, `Mechanistic Interpretability`, `Knowledge Graphs`
+- **Domains Tags**: `Dialogue Systems`, `Reasoning`, `Code Generation`, `Multilingual NLP`, `Healthcare NLP`
+
+#### Example 4: Computational Biology & Genetics
+- **Methods Tags**: `Single-Cell RNA-seq`, `Spatial Transcriptomics`, `Deep Learning for Proteomics`, `Molecular Dynamics`, `CRISPR Screening`
+- **Domains Tags**: `Cancer Biology`, `Immunology`, `Structural Biology`, `Neurodevelopment`, `Evolutionary Genomics`
+
+---
+
+## 🤖 Step 6: Multi-Agent Batch Orchestration Prompt
+
+To execute this workflow automatically via subagents, use the following battle-tested prompt templates:
+
+### Orchestrator Subagent Prompt
 ```markdown
-Read the university target list from `uni_list.txt`.
-Group the universities into batches of 3-5.
-For each batch:
-1. Use `invoke_subagent` to spawn one `data_miner` subagent per university.
-2. Direct each subagent to deeply sweep all relevant departments (CS, Bioengineering, Neuroscience, Psychology).
-3. Have each subagent save their results as an atomic JSON array to `batches/<safe_uni_name>.json`.
-4. Wait for all subagents in the batch to complete before proceeding to the next batch.
-When all batches are finished, run `python scripts/ingest.py --json-dir batches/ --db neuroai.db` to ingest all records.
+You are an academic discovery orchestrator.
+Target Discipline: {TARGET_DISCIPLINE}
+Keywords: {METHOD_KEYWORDS}, {DOMAIN_KEYWORDS}
+
+Task:
+1. Read the list of target universities from `{INPUT_FILE}` (or target list).
+2. Divide the universities into batches of 3 to 5 universities per batch.
+3. For each batch:
+   - Use `invoke_subagent` to launch 1 `data_miner` subagent per university concurrently.
+   - Instruct each subagent to deeply sweep relevant departments, extract PI profiles, fetch Scholar metrics, and save results to `batches/{safe_uni_name}.json`.
+   - Wait for all subagents in the batch to report completion before proceeding to the next batch.
+4. When all batches are completed:
+   - Run `python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db neuroai.db` to validate, geocode, deduplicate, and ingest all records into SQLite.
+5. Report total universities and PIs indexed.
 ```
 
-### Data Miner Worker Subagent Prompt Template
+### Worker Miner Subagent Prompt
 ```markdown
-Mine faculty/PI data for the following university: {University Name}
+You are an expert academic data miner.
+Target University: {University Name}
+Discipline: {TARGET_DISCIPLINE}
+Keywords: {KEYWORDS}
 
-IMPORTANT INSTRUCTIONS:
-1. Search all relevant department directories: Computer Science, Bioengineering, Neuroscience, Psychology, and affiliated institutes.
-2. Identify all faculty (Assistant, Associate, Full Professors, Research Faculty) working on Computational Neuroscience, NeuroAI, BCI, Neuroimaging, or Brain Modeling.
+Instructions:
+1. Search across all relevant departments and multidisciplinary research institutes at {University Name}.
+2. Find all tenure-track faculty (Assistant, Associate, Full Professors) working on {TARGET_DISCIPLINE}.
 3. For each researcher, extract:
    - "Name": Full name
    - "University": "{University Name}" (Exact canonical name)
-   - "Institute": Affiliated research institute / center
-   - "Department": Primary department
-   - "Title": Academic rank (e.g. Assistant Professor, Associate Professor, Professor)
-   - "City", "State": Campus location
+   - "Institute": Affiliated center / research institute
+   - "Department": Primary academic department
+   - "Title": Academic rank
+   - "City", "State", "Country": Location details
    - "Subject": Research description & keywords
-   - "Web": Lab or faculty profile URL
-   - "H-index": Search Google Scholar for "[Name] [University]", format as "H-index (Citations)", e.g. "21 (1850)". If rate-limited, use "Unknown".
+   - "Web": Personal lab website URL or faculty page
+   - "H-index": Search Google Scholar for "[Name] [University]". Format: "H-index (Citations)". If rate-limited, use "Unknown".
    - "Undergraduate School", "Master", "Phd", "Postdoc": Educational history
-   - "Research Experience": Summary of past research topics
-   - "Start Time": Year lab was established (e.g. "2025", "2026", "2021")
-   - "Other": Recruiting notes (e.g. "Looking for PhD students", "Open Postdoc positions")
-   - "Methods_Tags": Comma-separated tags from taxonomy
-   - "Domains_Tags": Comma-separated tags from taxonomy
-4. Save the results as a JSON array to: `batches/{safe_uni_name}.json`.
+   - "Research Experience": Summary of past research focus
+   - "Start Time": Year lab was established (e.g., "2025", "2026")
+   - "Other": Openings notes (e.g. "Looking for PhD students")
+   - "Methods_Tags": Comma-separated method tags
+   - "Domains_Tags": Comma-separated domain tags
+4. Save the results as a clean JSON array to: `batches/{safe_uni_name}.json` using `write_to_file`.
 ```
 
 ---
 
-## Step 3: Google Scholar Bibliometrics Enrichment
+## 📥 Step 7: Automated Ingestion & SQLite Deduplication
 
-1. Query: `"[Professor Name]" "[University Name]"` on Google Scholar.
-2. Extract:
-   - Author profile verified email / affiliation.
-   - All-time `h-index`.
-   - Total `citations`.
-   - Format: `"<h-index> (<citations>)"` (e.g. `"24 (3100)"`).
-3. **Resilience & Fallback**:
-   - If Scholar prompts a CAPTCHA or blocks requests, do **not** abort. Record `"H-index": "Unknown"` and continue mining without blocking the batch.
-
----
-
-## Step 4: Tag Classification & New PI Detection
-
-Classify each researcher using standardized tags for the UI filters:
-
-### Methods Taxonomy
-`BCI`, `Brain Modeling`, `Electrophysiology`, `Genomics / Bioinformatics`, `NeuroAI / Machine Learning`, `Neuroimaging`, `Neuromodulation`, `Optical Imaging`, `SNN / Neuromorphic`
-
-### Domains Taxonomy
-`Attention`, `Auditory`, `Decision Making`, `Disease / Clinical`, `Emotion / Social`, `Linguistic`, `Memory`, `Motor`, `Sleep / Circadian`, `Visual`
-
-### Lab Start Time & New PI Badges
-- **New PI (2025/2026)**: If lab established in 2025 or 2026, set `"Start Time": "2025"` or `"2026"`. The UI displays a high-priority orange badge.
-- **Incoming PI (2027)**: If recruited to open in 2027, set `"Start Time": "2027"`. The UI displays a pink incoming badge.
-
----
-
-## Step 5: Ingestion, Geocoding, & Deduplication
-
-Once JSON batch files are generated, execute the automated ingestion script:
+Once JSON batch files are generated:
 
 ```powershell
-python scripts/ingest.py --json-dir batches/ --db neuroai.db
+# Ingest all JSON files in batches/ into the target SQLite database
+python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db neuroai.db
+
+# Or ingest a single file
+python .agents/skills/advisor-data-miner/scripts/ingest.py --file my_mined_batch.json --db neuroai.db
 ```
 
-### Ingestion Features
-1. **Schema Initialization**: Automatically creates tables (`universities`, `researchers`, `logs`, `log_researcher_links`) if they do not exist.
-2. **University Linking & Geocoding**: Matches PI university against `universities` table and inherits canonical `lat`, `lon` coordinates.
-3. **Smart Deduplication**:
-   - Deduplicates on `(LOWER(Name), LOWER(University))`.
-   - Updates existing records with newly mined profile fields without overwriting user-curated CRM fields (`Application_Status`, `User_Notes`, `Priority`).
+### Ingestion Engine Capabilities
+- **Schema Auto-Creation**: Creates all required tables (`universities`, `researchers`, `logs`, `log_researcher_links`) on the fly.
+- **Dynamic University Registration**: If a university is encountered that is not in the database, it automatically registers it in the `universities` table and assigns a foreign key.
+- **Geocoding Coordinate Inheritance**: Automatically populates `Lat` and `Lon` coordinates from the master university table for GIS mapping.
+- **Non-Destructive Deduplication**: Deduplicates on `(LOWER(Name), LOWER(University))`. Updates academic fields from new crawls without ever overwriting personal CRM fields (`Application_Status`, `User_Notes`, `Priority`).
 
 ---
 
-## Step 6: Verification & Database Inspection
+## 📊 Step 8: Quality Verification Checklist
 
-After ingestion, verify data integrity:
-
-```powershell
-# Check researcher counts and top universities
-python -c "import sqlite3; c = sqlite3.connect('neuroai.db').cursor(); print('Total PIs:', c.execute('SELECT count(*) FROM researchers').fetchone()[0])"
-
-# Start the web app to explore interactively
-python app.py
-```
-Open `http://localhost:5000` to review the cards, GIS map clusters, and CRM logs.
+Before wrapping up a data mining run:
+1. **Quantity & Coverage**: Check total indexed PIs and distribution across departments:
+   ```powershell
+   python -c "import sqlite3; c=sqlite3.connect('neuroai.db').cursor(); print('Total:', c.execute('SELECT count(*) FROM researchers').fetchone()[0])"
+   ```
+2. **New PI Representation**: Verify that recent assistant professors (2024-2027) are properly tagged with `Start_Time`.
+3. **Scholar Accuracy**: Ensure H-indices are populated or gracefully defaulted to `"Unknown"`.
+4. **CRM Ready**: Run `python app.py` and open `http://localhost:5000` to review cards, filter by tags, and start tracking outreach.
