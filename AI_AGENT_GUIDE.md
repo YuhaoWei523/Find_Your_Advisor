@@ -1,144 +1,160 @@
 # Universal AI Agent Guide for Academic Advisor Mining 🤖
 
-> **Turn any modern LLM (ChatGPT, Claude, Cursor, Windsurf, Cline, or custom agents) into an autonomous academic advisor research assistant.**
+> **Turn any modern AI agent (Claude Code, OpenAI Codex, Antigravity, Cursor, ChatGPT, Claude) into an autonomous academic advisor research assistant for ANY discipline and ANY university list.**
 
-This guide provides ready-to-use prompt templates and runbooks to mine faculty data across **any academic field** and **any list of universities**, and ingest the structured results into the **Find Your Advisor** database.
+This guide provides instructions and ready-to-use prompt templates for both **Desktop / CLI Terminal Agents** and **Web Chat Assistants**.
 
 ---
 
 ## 📋 Table of Contents
-1. [Recipe 1: Anthropic Claude (Claude 3.5 Sonnet / Projects)](#recipe-1-anthropic-claude)
-2. [Recipe 2: OpenAI ChatGPT (GPT-4o / GPT-5 / Web Search)](#recipe-2-openai-chatgpt)
-3. [Recipe 3: AI Coding Assistants (Cursor / Windsurf / Cline / Aider)](#recipe-3-ai-coding-assistants)
-4. [Universal Researcher JSON Schema](#universal-researcher-json-schema)
-5. [Automated Ingestion into SQLite](#automated-ingestion-into-sqlite)
+- [Part 1: Desktop & CLI Terminal Agents](#part-1-desktop--cli-terminal-agents)
+  - [1. Anthropic Claude Code (`claude` CLI)](#1-anthropic-claude-code-claude-cli)
+  - [2. OpenAI Codex / Cursor / Windsurf / Cline](#2-openai-codex--cursor--windsurf--cline)
+  - [3. Google Antigravity Desktop Agent](#3-google-antigravity-desktop-agent)
+- [Part 2: Web Chat Assistants](#part-2-web-chat-assistants)
+  - [4. Anthropic Claude (Claude.ai / Claude Projects)](#4-anthropic-claude-claudeai--claude-projects)
+  - [5. OpenAI ChatGPT (GPT-4o / GPT-5 with Web Browsing)](#5-openai-chatgpt-gpt-4o--gpt-5-with-web-browsing)
+- [Universal Researcher JSON Schema](#universal-researcher-json-schema)
+- [Automated Ingestion into SQLite](#automated-ingestion-into-sqlite)
 
 ---
 
-## Recipe 1: Anthropic Claude
+# Part 1: Desktop & CLI Terminal Agents
 
-### Setup in Claude Projects or Direct Chat
-Claude 3.5 Sonnet excels at deep document research, synthesis, and structured JSON output.
+### 1. Anthropic Claude Code (`claude` CLI)
+Claude Code operates directly within your terminal and workspace. This repository includes [`CLAUDE.md`](CLAUDE.md), enabling Claude Code to automatically recognize project architecture and runbooks.
 
-#### Custom Instructions / Project System Prompt
-Paste the following into your Claude Project Custom Instructions or initial prompt:
+#### How to Run:
+Launch Claude Code in the project root:
+```bash
+claude
+```
+Then issue your mining prompt:
+```text
+Mine tenure-track faculty working on [YOUR TARGET DISCIPLINE, e.g. Quantum Computing & Quantum Information] across [TARGET UNIVERSITIES, e.g. MIT, Harvard, Princeton].
+Search across all relevant departments (Physics, EE, CS, Quantum Institutes).
+Extract Scholar metrics, lab websites, New PI lab start years (2024-2027), and recruiting notes.
+Save each university to batches/{safe_uni_name}.json and run scripts/ingest.py to ingest into advisor.db.
+```
+
+---
+
+### 2. OpenAI Codex / Cursor / Windsurf / Cline
+For AI coding assistants running inside VS Code, Cursor, Windsurf, or terminal wrappers:
+This repository includes [`.cursorrules`](.cursorrules) to guide the agent automatically.
+
+#### Agent Task Prompt:
+```markdown
+Task: Mine academic advisors for {YOUR_DISCIPLINE} across target universities.
+
+User Input:
+- Target Discipline: [e.g. Robotics & Embodied AI]
+- Method Keywords: [e.g. Reinforcement Learning, Sim2Real, Motion Planning, Vision-Language-Action]
+- Domain Keywords: [e.g. Manipulation, Bipedal Locomotion, Surgical Robotics]
+- University List: Read from `uni_list.txt` (or custom list: [Uni 1, Uni 2, Uni 3...])
+
+Execution Steps:
+1. Divide universities into batches of 3-5 schools.
+2. For each school, sweep home departments, sister departments, and specialized research centers.
+3. Extract Assistant, Associate, and Full Professors. Retrieve Google Scholar "H-index (Citations)" and lab founding years.
+4. Save batches to `batches/{safe_uni_name}.json` conforming to `.agents/skills/advisor-data-miner/references/schema.md`.
+5. Run: `python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db advisor.db`
+```
+
+---
+
+### 3. Google Antigravity Desktop Agent
+Antigravity automatically discovers and executes the built-in skill located at [`.agents/skills/advisor-data-miner/SKILL.md`](.agents/skills/advisor-data-miner/SKILL.md).
+
+#### How to Trigger in Antigravity:
+Simply instruct the agent:
+> *"Use the `advisor-data-miner` skill to research faculty working on [Your Target Discipline] across [Your Target Universities], and ingest the results into my database."*
+
+The skill handles batch scheduling, rate-limit avoidance, Google Scholar extraction fallbacks, and deduplicated ingestion automatically.
+
+---
+
+# Part 2: Web Chat Assistants
+
+### 4. Anthropic Claude (Claude.ai / Claude Projects)
+Paste this into your **Claude Project Custom Instructions** or system message:
 
 ```text
 You are an expert academic advisor discovery agent for prospective PhD and postdoc researchers.
-Your goal is to thoroughly research faculty (Principal Investigators / PIs) at target universities for a specified discipline.
+The user will provide a TARGET DISCIPLINE, KEYWORDS, and TARGET UNIVERSITIES.
 
-Search Methodology:
-1. Cross-Department Sweep: For the given university, search across ALL relevant departments (e.g. Computer Science, Engineering, Natural Sciences, Medicine, and interdisciplinary institutes).
-2. Rank Filtering: Focus on tenure-track faculty (Assistant Professor, Associate Professor, Full Professor, Research Faculty). Exclude lecturers, adjuncts, and administrative staff.
-3. Information Extraction:
-   - Full Name, University (exact canonical name), Department, Affiliated Institute
-   - Academic Rank / Title, City, State, Country
+Search & Extraction Protocol:
+1. Cross-Department Sweep: Search across ALL departments and interdisciplinary centers where this field is pursued.
+2. Rank Filtering: Focus on tenure-track faculty (Assistant, Associate, Full Professors). Exclude lecturers, adjuncts, and staff.
+3. Intelligence Extraction:
+   - Full Name, University (canonical name), Department, Affiliated Institute
+   - Academic Rank, Location (City, State, Country)
    - Research Description & core keywords
-   - Official lab website or faculty profile URL
-   - Google Scholar metrics: Search "[Name] [University]" to find H-index and total citations. Format as "H-index (Citations)" e.g. "24 (3100)". If unavailable, use "Unknown".
-   - Educational Background: Undergraduate, Master's, PhD (institution + year), Postdoctoral training
-   - Lab Start Year: Detect appointment / founding year (e.g. "2025", "2026"). Highlight New PIs (2024-2027) who have active recruiting intent.
+   - Official lab website URL or faculty page
+   - Google Scholar metrics: "H-index (Citations)", e.g. "24 (3100)". If unavailable, use "Unknown".
+   - Educational Background: Undergraduate, PhD, Postdoctoral training
+   - Lab Start Year: Detect appointment / founding year (e.g. "2025", "2026"). Flag New PIs (2024-2027) with active student recruitment intent.
    - Active Openings / Notes: Check lab /join or /openings pages for PhD/postdoc recruiting notes.
-   - Methods Tags: 1-3 core technical methods, tools, or models (comma-separated).
-   - Domains Tags: 1-3 problem domains, application areas, or targets (comma-separated).
+   - Methods_Tags: 1-3 core technical methods, tools, or models (comma-separated).
+   - Domains_Tags: 1-3 problem domains, application areas, or targets (comma-separated).
 
-Always output the resulting data as a valid, well-formed JSON array conforming to the Find Your Advisor schema.
+Always output the resulting data as a valid JSON array conforming to the Find Your Advisor schema.
 ```
 
-#### Query Prompt Template for Claude
+#### User Query Template:
 ```text
-Please research faculty working on [Target Discipline, e.g. Robotics & Embodied AI] at [University Name, e.g. Carnegie Mellon University].
-Search across the Robotics Institute (RI), School of Computer Science (SCS), and Mechanical Engineering.
-Find Assistant, Associate, and Full Professors working on this topic.
-Extract their Scholar H-index, lab website, recruiting status, and educational background.
-Output the result as a single JSON array of researcher objects.
+Target Discipline: [Enter your field, e.g. Computational Biology & Single-Cell Genomics]
+Keywords: [e.g. scRNA-seq, Spatial Transcriptomics, Deep Learning for Proteomics]
+Target University: [Enter school, e.g. UC Berkeley]
+
+Please find Assistant, Associate, and Full Professors working on these topics, extract their Scholar metrics, lab websites, New PI start years, and output as a JSON array.
 ```
 
 ---
 
-## Recipe 2: OpenAI ChatGPT
+### 5. OpenAI ChatGPT (GPT-4o / GPT-5 with Web Browsing)
 
-### Using with GPT-4o with Web Browsing / Custom GPT
-
-#### Custom GPT System Instructions
+#### ChatGPT Query Prompt:
 ```text
-You are an Academic Advisor Miner. Your role is to identify and extract structured profiles of professors and PIs for graduate applicants.
-
-When the user specifies a discipline and a target university:
-1. Use Web Search to locate the university's department faculty directories and interdisciplinary research centers.
-2. Identify faculty actively publishing in the specified research domain.
-3. Search Google Scholar or web profiles to extract the H-index and citation count: "H-index (Citations)".
-4. Detect the year they established their lab. Identify New PIs (established 2024–2027) with startup funding.
-5. Identify any active PhD / Postdoc student recruitment notices on their personal lab websites.
-6. Categorize their work with Methods Tags and Domains Tags.
-7. Return a clean, valid JSON code block containing the list of researcher objects.
-```
-
-#### Query Prompt Template for ChatGPT
-```text
-Target Discipline: [e.g. Quantum Computing & Quantum Information]
-Target University: [e.g. University of Chicago]
-Keywords: Superconducting qubits, trapped ions, quantum error correction, quantum algorithms
+Target Discipline: [Enter your field, e.g. Natural Language Processing & Foundation Models]
+Keywords: [e.g. Reasoning, Alignment, Mechanistic Interpretability, Multilingual NLP]
+Target University: [Enter school, e.g. University of Washington]
 
 Instructions:
-1. Search across the Department of Physics, Pritzker School of Molecular Engineering, and Department of Computer Science.
-2. Find faculty (especially Assistant and Associate Professors) working on these topics.
-3. Extract their name, department, lab website, Google Scholar H-index, lab start year, and education.
-4. Output the results as a JSON array matching the Find Your Advisor format.
-```
-
----
-
-## Recipe 3: AI Coding Assistants (Cursor / Windsurf / Cline / Aider)
-
-When working inside the `Find_Your_Advisor` codebase with autonomous coding agents:
-
-### Agent Runbook Prompt
-```markdown
-Task: Mine advisor data for [Target Discipline] across target universities in `uni_list.txt`.
-
-Instructions:
-1. Read the list of target universities from `uni_list.txt`.
-2. Process universities in batches of 3-5 schools to manage context and prevent rate limiting.
-3. For each university:
-   - Search the web for relevant faculty across all related departments and interdisciplinary centers.
-   - Extract full researcher profiles according to `.agents/skills/advisor-data-miner/references/schema.md`.
-   - Save the results for each university to a JSON file at `batches/{safe_uni_name}.json`.
-4. Once all batches are saved:
-   - Run `python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db neuroai.db`
-   - Verify that all records are inserted and deduplicated.
-5. Report completion with total PIs added.
+1. Use web browsing to search across Computer Science, Information School, and Linguistics.
+2. Find tenure-track faculty actively researching this field.
+3. Search Google Scholar for each professor to find their "H-index (Citations)".
+4. Check their personal lab website for lab founding year (highlight New PIs starting 2024–2027) and student recruitment calls.
+5. Return a valid JSON code block matching the Find Your Advisor schema.
 ```
 
 ---
 
 ## Universal Researcher JSON Schema
 
-All AI agents should format their output as a JSON array of objects with the following keys:
-
 ```json
 [
   {
-    "University": "Stanford University",
-    "Name": "Jane Doe",
-    "Institute": "Stanford AI Lab (SAIL)",
-    "Department": "Computer Science",
+    "University": "Carnegie Mellon University (CMU)",
+    "Name": "Alex Rivera",
+    "Institute": "Robotics Institute (RI)",
+    "Department": "School of Computer Science",
     "Title": "Assistant Professor",
-    "City": "Stanford",
-    "State": "CA",
+    "City": "Pittsburgh",
+    "State": "PA",
     "Country": "USA",
-    "Subject": "Foundation models for robotic manipulation and physical reasoning",
-    "Web": "https://janedoelab.stanford.edu",
-    "H-index": "22 (3100)",
+    "Subject": "Reinforcement learning and tactile perception for dexterous manipulation",
+    "Web": "https://riveralab.cmu.edu",
+    "H-index": "19 (2400)",
     "Undergraduate School": "UC Berkeley",
     "Master": "MIT",
-    "Phd": "CMU",
-    "Postdoc": "Stanford University",
-    "Research Experience": "Diffusion policies, sim-to-real transfer, tactile sensing",
+    "Phd": "Stanford University",
+    "Postdoc": "CMU",
+    "Research Experience": "Visuomotor policies, sim-to-real transfer, soft tactile sensors",
     "Start Time": "2025",
-    "Other": "Recruiting 2 PhD students for Fall 2026/2027",
-    "Methods_Tags": "Reinforcement Learning, Diffusion Models, Sim2Real",
-    "Domains_Tags": "Robotic Manipulation, Physical AI"
+    "Other": "Looking for 2 PhD students for Fall 2026 / 2027",
+    "Methods_Tags": "Reinforcement Learning, Sim2Real, Tactile Sensing",
+    "Domains_Tags": "Robotic Manipulation, Dexterous Hands"
   }
 ]
 ```
@@ -147,17 +163,15 @@ All AI agents should format their output as a JSON array of objects with the fol
 
 ## Automated Ingestion into SQLite
 
-Once your AI agent (ChatGPT, Claude, or Cursor) generates JSON files:
-
 ```bash
-# Ingest an entire directory of mined JSON files
-python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir ./batches/ --db neuroai.db
+# Ingest an entire directory of mined JSON files into advisor.db
+python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir ./batches/ --db advisor.db
 
 # Ingest a single JSON file
-python .agents/skills/advisor-data-miner/scripts/ingest.py --file ./mined_stanford.json --db neuroai.db
+python .agents/skills/advisor-data-miner/scripts/ingest.py --file ./sample.json --db advisor.db
 ```
 
-### Ingestion Features
+### Ingestion Engine Capabilities
 - **Dynamic University Registration**: If an institution is not already in the database, it automatically creates a new university record and links coordinates.
 - **Smart Deduplication**: Uses `(LOWER(Name), LOWER(University))` to merge new academic crawl data without ever overwriting your personal CRM ratings, application status, or notes.
 - **Instant UI Refresh**: Run `python app.py` and open `http://localhost:5000` to immediately view your new faculty cards, filter by tags, and track your outreach journal!

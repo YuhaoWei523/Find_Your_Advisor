@@ -35,10 +35,10 @@ Applying for PhD or postdoctoral positions across academia (**Robotics, Quantum 
 
 ## ✨ Key Features / 核心功能
 
-### 1. 🔬 Multidisciplinary Taxonomy & Boolean Filtering (跨学科多维筛选)
-- **Methods Filtering**: `NeuroAI / Machine Learning`, `Brain Modeling`, `BCI`, `Electrophysiology`, `Optical Imaging`, `Neuroimaging`, `Neuromodulation`, `Genomics / Bioinformatics`, `SNN / Neuromorphic`.
-- **Domains Filtering**: `Visual`, `Motor`, `Memory`, `Decision Making`, `Attention`, `Auditory`, `Linguistic`, `Emotion / Social`, `Sleep / Circadian`, `Disease / Clinical`.
-- Flexible **AND / OR logic** toggle for complex intersection queries.
+### 1. 🔬 User-Specified Discipline & Adaptive Taxonomy (用户自定义学科与自适应多维筛选)
+- **100% Discipline-Agnostic**: Works with ANY academic discipline you enter (**Robotics & Embodied AI, Quantum Information, LLMs & NLP, Computational Biology, Materials Science, Economics, Computational Neuroscience, etc.**).
+- **Dynamic Filter Generation**: The platform dynamically discovers all `Methods_Tags` and `Domains_Tags` from your database and renders interactive filter pills on the fly.
+- Flexible **AND / OR logic** toggle for complex multi-tag intersection queries.
 
 ### 2. 🚀 New PI & Incoming PI Radar (新晋 PI 招生雷达)
 - Identifies newly established labs (**2025 / 2026**) with distinctive orange badges.
@@ -47,7 +47,7 @@ Applying for PhD or postdoctoral positions across academia (**Robotics, Quantum 
 
 ### 3. 🗺️ Interactive GIS Map Explorer (全球大学分布地图)
 - Powered by Leaflet & high-resolution ESRI topographic vector tiles.
-- Pre-seeded with **106 top research universities** across North America, Europe, and Asia.
+- Pre-seeded with **106 top research universities** across North America, Europe, and Asia (and dynamically registers any new institution).
 - Country quick-jump buttons and dynamic clustering.
 - Interactive university badges with visual indicators for starred priority PIs (pulsing gold ring) and active outreach pipelines (emerald green).
 - Direct bidirectional flying: click on any university in a card to instantly fly the camera to its campus marker on the globe.
@@ -64,7 +64,7 @@ Applying for PhD or postdoctoral positions across academia (**Robotics, Quantum 
 - **Zero pip install required**: No Node.js, no Docker, no external database servers. Runs out of the box on Windows, macOS, and Linux.
 
 ### 6. 🔒 100% Privacy & Local-First (数据私密性保证)
-- Your contact history, personal ratings, and notes are stored strictly in a local SQLite file (`neuroai.db`).
+- Your contact history, personal ratings, and notes are stored strictly in a local SQLite file (`advisor.db` or legacy `neuroai.db`).
 - Nothing is uploaded to third-party clouds or telemetry servers.
 
 ---
@@ -86,7 +86,7 @@ cd Find_Your_Advisor
 python app.py
 ```
 
-*Note: On the first run, `app.py` automatically initializes `neuroai.db` and populates the 106 global research universities and their geographic coordinates.*
+*Note: On the first run, `app.py` automatically initializes `advisor.db` (or connects to your existing database) and populates the 106 global research universities and their geographic coordinates.*
 
 ### 3. Open in Browser
 Visit:
@@ -97,13 +97,15 @@ or open `index.html` directly in your browser.
 
 ---
 
-## 🤖 Universal AI Agent Mining Workflow (ChatGPT • Claude • Cursor • Any LLM)
+## 🤖 Universal AI Agent Mining Workflow (Claude Code • Codex • Antigravity • Cursor • ChatGPT)
 
 The repository provides a complete, model-agnostic academic discovery framework in [`.agents/skills/advisor-data-miner/`](.agents/skills/advisor-data-miner/SKILL.md) and ready-to-copy prompt recipes in [`AI_AGENT_GUIDE.md`](AI_AGENT_GUIDE.md).
 
 ```
 Find_Your_Advisor/
-├── AI_AGENT_GUIDE.md         # Ready-to-copy prompts for Claude, ChatGPT & Cursor
+├── CLAUDE.md                 # Configuration and runbook for Claude Code CLI agent
+├── .cursorrules              # Rules & guidelines for Cursor, Windsurf, & Codex agents
+├── AI_AGENT_GUIDE.md         # Ready-to-copy prompts for Claude, ChatGPT, Codex & Antigravity
 └── .agents/skills/advisor-data-miner/
     ├── SKILL.md              # Universal agent instruction runbook
     ├── scripts/
@@ -118,32 +120,36 @@ Find_Your_Advisor/
 
 ```mermaid
 flowchart TD
-    A["University Target List (uni_list.txt or Custom)"] --> B["Orchestrator Agent / Master Prompt"]
-    B -->|"Batches of 3-5 universities"| C["LLM Web Scrapers (Claude / GPT / Cursor)"]
-    C -->|"Sweep CS / Neuro / BioE / Psych / Eng"| D["Faculty Directory Scraper"]
-    D -->|"Fetch metrics & total citations"| E["Google Scholar Enrichment"]
-    E -->|"Tag classification & New PI detection"| F["JSON Batches (batches/*.json)"]
-    F -->|"Validate, geocode & deduplicate"| G["scripts/ingest.py"]
-    G --> H[("neuroai.db (Local SQLite)")]
+    A["Target Discipline & Research Keywords (User Defined)\n+ Target Universities (Custom List or uni_list.txt)"] --> B["Master Orchestrator / Agent Prompt"]
+    B -->|"Batches of 3-5 universities"| C["AI Agent Miners\n(Claude Code / Codex / Antigravity / Cursor / ChatGPT)"]
+    C -->|"Sweep User-Targeted Academic Departments & Institutes"| D["Faculty Directory Scraper & Lab Pages"]
+    D -->|"Fetch metrics & citations (Google Scholar)"| E["Bibliometric & Lab Intelligence"]
+    E -->|"Adaptive Multi-Tagging (Methods & Domains) & New PI Detection"| F["Structured JSON Batches (batches/*.json)"]
+    F -->|"Universal Schema Ingestion & Deduplication"| G["scripts/ingest.py"]
+    G --> H[("advisor.db (Local SQLite)")]
 ```
 
-### 🎯 Fast Setup with Popular AI Assistants
+### 🎯 Fast Setup with Desktop & Chat AI Assistants
 
-- **Anthropic Claude (Claude 3.5 Sonnet / Claude Projects)**:
-  - Copy the system prompt from [`AI_AGENT_GUIDE.md`](AI_AGENT_GUIDE.md) into your Claude Project or chat, specify your discipline and target university, and ask Claude to output researcher JSON.
-- **OpenAI ChatGPT (GPT-4o / GPT-5 with Web Browsing)**:
-  - Paste the prompt recipe from [`AI_AGENT_GUIDE.md`](AI_AGENT_GUIDE.md) into ChatGPT with browsing enabled to automatically search faculty profiles and Scholar bibliometrics.
-- **AI Coding Agents (Cursor / Windsurf / Cline / Aider)**:
-  - Prompt your coding agent to read `uni_list.txt`, sweep universities in batches, save JSON files to `batches/`, and run `scripts/ingest.py`.
+- **Anthropic Claude Code (`claude` CLI terminal agent)**:
+  - This repo includes [`CLAUDE.md`](CLAUDE.md). Run `claude` in your terminal and ask:
+    > *"Mine faculty working on [Your Target Field, e.g. Quantum Computing] across [Target Universities], save to batches/, and ingest into advisor.db."*
+- **OpenAI Codex / Cursor / Windsurf / Cline**:
+  - This repo includes [`.cursorrules`](.cursorrules). Point your coding assistant to `uni_list.txt` or a custom list and have it run the batch crawler and ingestion automatically.
+- **Google Antigravity Desktop Agent**:
+  - The repository's [`.agents/skills/advisor-data-miner/`](.agents/skills/advisor-data-miner/SKILL.md) is auto-discovered as an autonomous skill. Instruct your agent:
+    > *"Use advisor-data-miner to research faculty in [Your Field] across [Universities] and update my database."*
+- **Web Chat Assistants (Claude.ai / ChatGPT GPT-4o)**:
+  - Copy ready-to-use prompt templates from [`AI_AGENT_GUIDE.md`](AI_AGENT_GUIDE.md) to generate structured researcher JSON directly.
 
 ### Automated Ingestion into SQLite
 Whenever your AI agent generates researcher JSON files:
 ```bash
 # Ingest an entire directory of JSON files
-python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir ./batches/ --db neuroai.db
+python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir ./batches/ --db advisor.db
 
 # Ingest a single JSON file
-python .agents/skills/advisor-data-miner/scripts/ingest.py --file ./sample.json --db neuroai.db
+python .agents/skills/advisor-data-miner/scripts/ingest.py --file ./sample.json --db advisor.db
 ```
 
 The ingestion engine automatically:
@@ -163,7 +169,9 @@ Find_Your_Advisor/
 ├── init_db.py                   # Standalone database initialization script
 ├── seed_universities.json       # Geocoordinates & country data for 106 universities
 ├── uni_list.txt                 # Canonical list of target universities
-├── AI_AGENT_GUIDE.md            # Ready-to-copy prompts for Claude, ChatGPT & Cursor
+├── CLAUDE.md                    # Agent instructions for Claude Code CLI
+├── .cursorrules                 # Agent rules for Cursor, Windsurf, & Codex
+├── AI_AGENT_GUIDE.md            # Ready-to-copy prompts for Claude, ChatGPT, Codex & Antigravity
 ├── .gitignore                   # Strict rules protecting personal database & notes
 ├── LICENSE                      # MIT Open Source License
 ├── README.md                    # Project documentation

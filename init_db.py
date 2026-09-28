@@ -10,7 +10,7 @@ import sys
 import json
 import sqlite3
 
-DB_PATH = 'neuroai.db'
+DB_PATH = os.environ.get('ADVISOR_DB', 'neuroai.db' if os.path.exists('neuroai.db') else 'advisor.db')
 SEED_FILE = 'seed_universities.json'
 
 def init_database(db_path: str = DB_PATH):

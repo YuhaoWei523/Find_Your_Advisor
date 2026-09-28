@@ -204,8 +204,9 @@ def ingest_item(cursor: sqlite3.Cursor, item: Dict[str, Any], uni_map: Dict[str,
         return "inserted"
 
 def main():
+    default_db = os.environ.get('ADVISOR_DB', 'neuroai.db' if os.path.exists('neuroai.db') else 'advisor.db')
     parser = argparse.ArgumentParser(description="Ingest advisor JSON files into SQLite database.")
-    parser.add_argument("--db", default="neuroai.db", help="Path to SQLite database file.")
+    parser.add_argument("--db", default=default_db, help="Path to SQLite database file (default: advisor.db).")
     parser.add_argument("--json-dir", help="Path to folder containing JSON batch files.")
     parser.add_argument("--file", help="Path to a single JSON batch file.")
     args = parser.parse_args()

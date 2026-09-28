@@ -13,7 +13,7 @@ import mimetypes
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-DB_PATH = 'neuroai.db'
+DB_PATH = os.environ.get('ADVISOR_DB', 'neuroai.db' if os.path.exists('neuroai.db') else 'advisor.db')
 SEED_FILE = 'seed_universities.json'
 
 DEFAULT_METHODS = [
@@ -225,14 +225,19 @@ class RequestHandler(BaseHTTPRequestHandler):
         cursor.execute("SELECT Methods_Tags, Domains_Tags FROM researchers")
         rows = cursor.fetchall()
         
-        methods = set(DEFAULT_METHODS)
-        domains = set(DEFAULT_DOMAINS)
+        methods = set()
+        domains = set()
         
         for r in rows:
             m_tags = [t.strip() for t in str(r['Methods_Tags']).split(',') if t.strip() and t.strip() != 'None']
             d_tags = [t.strip() for t in str(r['Domains_Tags']).split(',') if t.strip() and t.strip() != 'None']
             methods.update(m_tags)
             domains.update(d_tags)
+            
+        if not methods and DEFAULT_METHODS:
+            methods = set(DEFAULT_METHODS)
+        if not domains and DEFAULT_DOMAINS:
+            domains = set(DEFAULT_DOMAINS)
             
         cursor.execute("SELECT name, country FROM universities ORDER BY country, name")
         

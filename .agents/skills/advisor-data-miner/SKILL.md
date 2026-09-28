@@ -56,7 +56,7 @@ Modern research is inherently cross-disciplinary. Frontier work rarely resides w
                                +---------------+----------------+
                                                |
                                                v
-                                       [ neuroai.db ]
+                                       [ advisor.db ]
 ```
 
 ---
@@ -227,7 +227,7 @@ Task:
 2. Process universities in batches of 3-5 schools to manage context and prevent rate limiting.
 3. For each school, sweep department directories, extract full PI profiles according to `.agents/skills/advisor-data-miner/references/schema.md`, and save to `batches/{safe_uni_name}.json`.
 4. When all batches are done, execute:
-   `python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db neuroai.db`
+   `python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db advisor.db`
 5. Verify the count of inserted records and report completion.
 ```
 
@@ -245,10 +245,10 @@ Once JSON batch files are generated:
 
 ```powershell
 # Ingest all JSON files in batches/ into the target SQLite database
-python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db neuroai.db
+python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db advisor.db
 
 # Or ingest a single file
-python .agents/skills/advisor-data-miner/scripts/ingest.py --file my_mined_batch.json --db neuroai.db
+python .agents/skills/advisor-data-miner/scripts/ingest.py --file my_mined_batch.json --db advisor.db
 ```
 
 ### Ingestion Engine Capabilities
@@ -264,7 +264,7 @@ python .agents/skills/advisor-data-miner/scripts/ingest.py --file my_mined_batch
 Before wrapping up a data mining run:
 1. **Quantity & Coverage**: Check total indexed PIs and distribution across departments:
    ```powershell
-   python -c "import sqlite3; c=sqlite3.connect('neuroai.db').cursor(); print('Total:', c.execute('SELECT count(*) FROM researchers').fetchone()[0])"
+   python -c "import sqlite3; c=sqlite3.connect('advisor.db').cursor(); print('Total:', c.execute('SELECT count(*) FROM researchers').fetchone()[0])"
    ```
 2. **New PI Representation**: Verify that recent assistant professors (2024-2027) are properly tagged with `Start_Time`.
 3. **Scholar Accuracy**: Ensure H-indices are populated or gracefully defaulted to `"Unknown"`.

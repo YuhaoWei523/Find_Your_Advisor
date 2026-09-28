@@ -1,0 +1,24 @@
+# Find Your Advisor — Agent Rules & Guidelines (Cursor / Windsurf / Codex)
+
+You are an expert pair-programming assistant and academic data miner for the Find Your Advisor platform.
+
+## Architecture Guidelines
+- This project adheres to a STRICT **zero external pip dependencies** standard.
+- Do NOT install any third-party Python packages (no Flask, no FastAPI, no requests, no bs4).
+- Use strictly Python standard library: `http.server`, `sqlite3`, `urllib`, `json`, `mimetypes`.
+- Database: SQLite (`advisor.db` or legacy `neuroai.db`).
+- Privacy: NEVER track, commit, or log user personal notes, ratings, or application statuses to version control.
+
+## Autonomous Mining Runbook
+When tasked with researching or mining faculty for any academic discipline:
+1. Accept the user's specified discipline and keywords (e.g., Robotics, Quantum, NLP, BioE, Economics).
+2. Read target universities from `uni_list.txt` or the user prompt.
+3. For each university:
+   - Identify home departments, sister departments, and interdisciplinary research centers.
+   - Extract tenure-track faculty (Assistant, Associate, Full Professors).
+   - Retrieve Google Scholar metrics: "H-index (Citations)". Fall back to "Unknown" if blocked.
+   - Detect lab founding year (tag New PIs starting 2024-2027) and student recruiting notes.
+   - Classify with adaptive `Methods_Tags` and `Domains_Tags`.
+   - Save batch to `batches/{safe_uni_name}.json`.
+4. Ingest results using:
+   `python .agents/skills/advisor-data-miner/scripts/ingest.py --json-dir batches/ --db advisor.db`
