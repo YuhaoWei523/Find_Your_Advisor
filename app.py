@@ -165,6 +165,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.handle_add_researcher()
         elif path == '/api/researchers/delete':
             self.handle_delete_researcher()
+        elif path == '/api/universities/add':
+            self.handle_add_university()
+        elif path == '/api/universities/update':
+            self.handle_update_university()
+        elif path == '/api/universities/delete':
+            self.handle_delete_university()
         elif path == '/api/logs/save':
             self.handle_save_log()
         elif path == '/api/logs/delete':
@@ -209,9 +215,25 @@ class RequestHandler(BaseHTTPRequestHandler):
     def handle_get_universities(self):
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, name FROM universities ORDER BY name")
+        cursor.execute("""
+            SELECT u.id, u.name, u.country, u.lat, u.lon, COUNT(r.id) as researcher_count
+            FROM universities u
+            LEFT JOIN researchers r ON u.id = r.university_id
+            GROUP BY u.id
+            ORDER BY u.name
+        """)
         rows = cursor.fetchall()
-        result = [{'id': r['id'], 'name': r['name']} for r in rows]
+        result = [
+            {
+                'id': r['id'],
+                'name': r['name'],
+                'country': r['country'] or 'Other',
+                'lat': r['lat'],
+                'lon': r['lon'],
+                'researcher_count': r['researcher_count']
+            }
+            for r in rows
+        ]
         conn.close()
         
         self.send_response(200)
@@ -458,6 +480,126 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.end_headers()
         self.wfile.write(json.dumps({'status': 'success'}).encode('utf-8'))
+
+    def handle_add_university(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        name = (data.get('name') or '').strip()
+        country = (data.get('country') or 'USA').strip()
+        lat = data.get('lat')
+        lon = data.get('lon')
+        
+        if not name:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'University name is required'}).encode('utf-8'))
+            return
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM universities WHERE LOWER(name) = ?", (name.lower(),))
+        if cursor.fetchone():
+            conn.close()
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'An institution with this name already exists'}).encode('utf-8'))
+            return
+
+        cursor.execute(
+            "INSERT INTO universities (name, country, lat, lon) VALUES (?, ?, ?, ?)",
+            (name, country, float(lat) if lat not in (None, '') else None, float(lon) if lon not in (None, '') else None)
+        )
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success', 'id': new_id}).encode('utf-8'))
+
+    def handle_update_university(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        u_id = data.get('id')
+        name = (data.get('name') or '').strip()
+        country = (data.get('country') or 'USA').strip()
+        lat = data.get('lat')
+        lon = data.get('lon')
+        
+        if not u_id or not name:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'ID and Name are required'}).encode('utf-8'))
+            return
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM universities WHERE LOWER(name) = ? AND id != ?", (name.lower(), u_id))
+        if cursor.fetchone():
+            conn.close()
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Another institution with this name already exists'}).encode('utf-8'))
+            return
+            
+        parsed_lat = float(lat) if lat not in (None, '') else None
+        parsed_lon = float(lon) if lon not in (None, '') else None
+        
+        cursor.execute(
+            "UPDATE universities SET name = ?, country = ?, lat = ?, lon = ? WHERE id = ?",
+            (name, country, parsed_lat, parsed_lon, u_id)
+        )
+        # Synchronize linked researchers
+        cursor.execute(
+            "UPDATE researchers SET University = ?, Lat = ?, Lon = ? WHERE university_id = ?",
+            (name, parsed_lat, parsed_lon, u_id)
+        )
+        conn.commit()
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success'}).encode('utf-8'))
+
+    def handle_delete_university(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        u_id = data.get('id')
+        if not u_id:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'University ID is required'}).encode('utf-8'))
+            return
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cascade = data.get('cascade_researchers', False)
+        if cascade:
+            cursor.execute("DELETE FROM researchers WHERE university_id = ?", (u_id,))
+        else:
+            cursor.execute("UPDATE researchers SET university_id = NULL WHERE university_id = ?", (u_id,))
+            
+        cursor.execute("DELETE FROM universities WHERE id = ?", (u_id,))
+        conn.commit()
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success', 'deleted_id': u_id}).encode('utf-8'))
 
     def handle_get_logs(self):
         conn = get_db_connection()

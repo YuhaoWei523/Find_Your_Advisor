@@ -385,6 +385,7 @@
         <div class="navbar-actions">
             <button id="btn-edit-selected" class="btn btn-disabled" disabled>✏️ Edit Selected</button>
             <button id="btn-delete-selected" class="btn btn-disabled" disabled>🗑️ Delete Selected</button>
+            <button id="manage-unis-btn" class="btn btn-outline" onclick="openInstitutionModal()">🏛️ Institutions</button>
             <button id="open-journal-btn" class="btn btn-accent">📔 Outreach Journal</button>
             <button id="toggle-map-btn" class="btn btn-outline">🌍 Toggle Map</button>
             <button id="add-pi-btn" class="btn btn-primary">➕ Add New PI</button>
@@ -435,7 +436,10 @@
             </div>
 
             <div class="filter-section">
-                <h4>Universities</h4>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px;">
+                    <h4 style="border-bottom:none; padding-bottom:0; margin-bottom:0;">Universities</h4>
+                    <button onclick="openInstitutionModal()" style="background:none; border:none; color:var(--primary); font-size:0.85em; font-weight:600; cursor:pointer; padding:2px 6px; border-radius:4px; transition:color 0.2s;" onmouseover="this.style.color='var(--primary-hover)'" onmouseout="this.style.color='var(--primary)'" title="Manage Institutions">⚙️ Manage</button>
+                </div>
                 <div id="university-filters"></div>
             </div>
         </div>
@@ -599,6 +603,120 @@
             </div>
         </div>
     </div>
+    
+    <!-- Institution Management Modal -->
+    <div class="modal-overlay" id="institution-modal" style="display:none;">
+        <div class="modal" style="width: 880px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 28px; box-sizing: border-box;">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
+                <div>
+                    <h2 style="margin: 0 0 4px 0; font-size: 1.4em; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                        🏛️ Institution Management
+                    </h2>
+                    <p style="margin: 0; font-size: 0.88em; color: var(--text-muted);">
+                        Add, edit, or remove universities/institutions, manage geographic coordinates, and view affiliated researchers.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button id="toggle-add-uni-btn" class="btn btn-primary" onclick="toggleAddUniForm()" style="font-size: 0.85em; padding: 6px 14px;">➕ Add Institution</button>
+                    <button class="btn btn-cancel" onclick="closeInstitutionModal()" style="font-size: 0.85em; padding: 6px 12px;">✕ Close</button>
+                </div>
+            </div>
+
+            <!-- Collapsible Add/Edit Form Card -->
+            <div id="uni-form-card" style="display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 18px; margin-bottom: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 id="uni-form-title" style="margin: 0; font-size: 1.05em; color: var(--text-main); font-weight: 700;">➕ Add New Institution</h3>
+                    <span id="uni-form-hint" style="font-size: 0.82em; color: var(--text-muted);"></span>
+                </div>
+                <input type="hidden" id="uni-form-id">
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Institution / University Name *</label>
+                        <input type="text" id="uni-form-name" placeholder="e.g. Carnegie Mellon University" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Country / Region</label>
+                        <input type="text" id="uni-form-country" placeholder="e.g. USA, UK, Switzerland" list="countries-list" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                        <datalist id="countries-list">
+                            <option value="USA">
+                            <option value="UK">
+                            <option value="Canada">
+                            <option value="Switzerland">
+                            <option value="Germany">
+                            <option value="France">
+                            <option value="Netherlands">
+                            <option value="Sweden">
+                            <option value="Belgium">
+                            <option value="Austria">
+                            <option value="Israel">
+                            <option value="Singapore">
+                            <option value="China">
+                            <option value="Japan">
+                            <option value="Australia">
+                        </datalist>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 14px;">
+                    <div>
+                        <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Latitude</label>
+                        <input type="number" step="any" id="uni-form-lat" placeholder="e.g. 40.4433" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Longitude</label>
+                        <input type="number" step="any" id="uni-form-lon" placeholder="e.g. -79.9436" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <button type="button" id="uni-detect-coord-btn" class="btn btn-action" onclick="autoDetectCoordinates()" style="height: 38px; white-space: nowrap; font-size: 0.82em; padding: 0 12px;" title="Look up coordinates via OpenStreetMap Nominatim">🌐 Auto-Detect</button>
+                    </div>
+                </div>
+                
+                <div id="uni-sync-notice" style="display: none; background: #fef3c7; border: 1px solid #fde68a; color: #92400e; padding: 8px 12px; border-radius: 6px; font-size: 0.82em; margin-bottom: 12px;">
+                    ℹ️ Saving changes will automatically synchronize the university name and map coordinates for affiliated researchers.
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button class="btn btn-cancel" onclick="cancelUniForm()" style="font-size: 0.85em; padding: 6px 14px;">Cancel</button>
+                    <button id="uni-form-submit-btn" class="btn btn-primary" onclick="submitUniForm()" style="font-size: 0.85em; padding: 6px 16px;">Save Institution</button>
+                </div>
+            </div>
+
+            <!-- Toolbar: Search and Filter -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <input type="text" id="uni-table-search" placeholder="🔍 Search institutions by name or country..." oninput="filterInstitutionsTable()" style="flex: 1; padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em;">
+                <span id="uni-count-badge" style="font-size: 0.85em; color: var(--text-muted); font-weight: 600; white-space: nowrap;">0 institutions</span>
+            </div>
+
+            <!-- Institutions Table Container -->
+            <div style="flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; max-height: 480px; background: white;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.88em; text-align: left;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; color: var(--text-muted); font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.05em;">
+                            <th style="padding: 10px 14px; font-weight: 700;">Institution</th>
+                            <th style="padding: 10px 12px; font-weight: 700; width: 110px;">Country</th>
+                            <th style="padding: 10px 12px; font-weight: 700; width: 140px;">Coordinates</th>
+                            <th style="padding: 10px 12px; font-weight: 700; width: 100px; text-align: center;">Researchers</th>
+                            <th style="padding: 10px 14px; font-weight: 700; width: 140px; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="institutions-table-body">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer Stats & Close -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+                <div style="font-size: 0.82em; color: var(--text-muted);">
+                    Tip: Clicking <strong>📍 Map</strong> will fly directly to the institution on the global GIS map.
+                </div>
+                <button class="btn btn-primary" onclick="closeInstitutionModal()" style="font-size: 0.88em; padding: 6px 18px;">Done</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Data will be loaded from this file to bypass CORS issues for local files -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="web_assets/app.js"></script>

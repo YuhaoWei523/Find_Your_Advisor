@@ -1,3 +1,13 @@
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Backend API URL (dynamic origin or fallback)
 const API_BASE = (window.location.protocol.startsWith('http')) 
     ? (window.location.origin + '/api') 
@@ -115,13 +125,15 @@ function triggerRender() {
 function buildFilters(methods, domains, universities, statuses) {
     const buildCheckboxes = (containerId, items, activeSet) => {
         const container = document.getElementById(containerId);
+        if (!container) return;
         container.innerHTML = '';
         items.forEach(item => {
+            const val = item.value !== undefined ? item.value : item;
+            const isChecked = activeSet.has(val) ? 'checked' : '';
             const label = document.createElement('label');
             label.className = 'filter-label';
-            label.innerHTML = `<input type="checkbox" value="${item.value !== undefined ? item.value : item}"> ${item.label || item}`;
+            label.innerHTML = `<input type="checkbox" value="${val}" ${isChecked}> ${item.label || item}`;
             label.querySelector('input').addEventListener('change', (e) => {
-                const val = item.value !== undefined ? item.value : item;
                 if (e.target.checked) activeSet.add(val);
                 else activeSet.delete(val);
                 triggerRender();
@@ -158,9 +170,10 @@ function buildFilters(methods, domains, universities, statuses) {
         subContainer.style.marginTop = '5px';
         
         universities[country].forEach(uni => {
+            const isChecked = activeUniversities.has(uni) ? 'checked' : '';
             const label = document.createElement('label');
             label.className = 'filter-label';
-            label.innerHTML = `<input type="checkbox" value="${uni}"> ${uni}`;
+            label.innerHTML = `<input type="checkbox" value="${uni}" ${isChecked}> ${uni}`;
             label.querySelector('input').addEventListener('change', (e) => {
                 if (e.target.checked) activeUniversities.add(uni);
                 else activeUniversities.delete(uni);
@@ -1103,5 +1116,341 @@ async function loadHistory(id) {
         }).join('');
     } catch(e) {
         historyDiv.innerHTML = '<em style="color:red;">Error loading history.</em>';
+    }
+}
+
+
+
+// ==========================================
+// --- Institution Management System ---
+// ==========================================
+let cachedInstitutionsList = [];
+
+async function openInstitutionModal() {
+    const modal = document.getElementById('institution-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    cancelUniForm();
+    const searchInput = document.getElementById('uni-table-search');
+    if (searchInput) searchInput.value = '';
+    await loadInstitutionsTable();
+}
+
+function closeInstitutionModal() {
+    const modal = document.getElementById('institution-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function loadInstitutionsTable() {
+    const tbody = document.getElementById('institutions-table-body');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#64748b;">Loading institutions...</td></tr>';
+    
+    try {
+        const res = await fetch(`${API_BASE}/universities`);
+        if (!res.ok) throw new Error("Failed to load institutions");
+        cachedInstitutionsList = await res.json();
+        renderInstitutionsTable();
+    } catch (err) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:#ef4444;">Error: ${err.message}</td></tr>`;
+    }
+}
+
+function filterInstitutionsTable() {
+    const searchInput = document.getElementById('uni-table-search');
+    const filterText = (searchInput ? searchInput.value : '').trim().toLowerCase();
+    renderInstitutionsTable(filterText);
+}
+
+function renderInstitutionsTable(filterText = '') {
+    const tbody = document.getElementById('institutions-table-body');
+    const badge = document.getElementById('uni-count-badge');
+    if (!tbody) return;
+
+    let filtered = cachedInstitutionsList;
+    if (filterText) {
+        filtered = cachedInstitutionsList.filter(u => 
+            (u.name && u.name.toLowerCase().includes(filterText)) ||
+            (u.country && u.country.toLowerCase().includes(filterText))
+        );
+    }
+
+    if (badge) {
+        badge.innerText = `${filtered.length} of ${cachedInstitutionsList.length} institutions`;
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#94a3b8;">No institutions match the filter.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(uni => {
+        const safeName = (uni.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const hasCoords = (uni.lat !== null && uni.lat !== undefined && uni.lat !== '' && 
+                           uni.lon !== null && uni.lon !== undefined && uni.lon !== '');
+        const coordsText = hasCoords 
+            ? `${Number(uni.lat).toFixed(4)}, ${Number(uni.lon).toFixed(4)}`
+            : '<span style="color:#94a3b8; font-style:italic;">None</span>';
+        const piCount = uni.researcher_count || 0;
+        const piBadgeStyle = piCount > 0 
+            ? 'background: #dbeafe; color: #1e40af;' 
+            : 'background: #f1f5f9; color: #64748b;';
+
+        return `
+            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                <td style="padding: 10px 14px; font-weight: 600; color: var(--text-main);">
+                    ${escapeHtml(uni.name)}
+                </td>
+                <td style="padding: 10px 12px; color: var(--text-muted);">
+                    ${escapeHtml(uni.country || 'USA')}
+                </td>
+                <td style="padding: 10px 12px; font-family: monospace; font-size: 0.82em; color: #475569;">
+                    ${coordsText}
+                </td>
+                <td style="padding: 10px 12px; text-align: center;">
+                    <span style="${piBadgeStyle} padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 0.8em; display: inline-block;">
+                        ${piCount} PIs
+                    </span>
+                </td>
+                <td style="padding: 10px 14px; text-align: right; white-space: nowrap;">
+                    ${hasCoords ? `<button class="btn btn-action" onclick="flyToInstitutionFromModal(${uni.lat}, ${uni.lon}, '${safeName}')" title="Fly to map" style="padding: 4px 8px; font-size: 0.8em; margin-right: 4px;">📍</button>` : ''}
+                    <button class="btn btn-action" onclick="editInstitution(${uni.id})" title="Edit institution" style="padding: 4px 8px; font-size: 0.8em; margin-right: 4px;">✏️</button>
+                    <button class="btn btn-action" onclick="deleteInstitution(${uni.id}, '${safeName}', ${piCount})" title="Delete institution" style="padding: 4px 8px; font-size: 0.8em; color: var(--danger);">🗑️</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function toggleAddUniForm(show = null) {
+    const card = document.getElementById('uni-form-card');
+    const toggleBtn = document.getElementById('toggle-add-uni-btn');
+    if (!card) return;
+    
+    const shouldShow = (show !== null) ? show : (card.style.display === 'none');
+    if (shouldShow) {
+        card.style.display = 'block';
+        if (toggleBtn) toggleBtn.innerText = '➖ Hide Form';
+    } else {
+        cancelUniForm();
+    }
+}
+
+function cancelUniForm() {
+    const card = document.getElementById('uni-form-card');
+    const toggleBtn = document.getElementById('toggle-add-uni-btn');
+    if (card) card.style.display = 'none';
+    if (toggleBtn) toggleBtn.innerText = '➕ Add Institution';
+
+    const idInput = document.getElementById('uni-form-id');
+    const nameInput = document.getElementById('uni-form-name');
+    const countryInput = document.getElementById('uni-form-country');
+    const latInput = document.getElementById('uni-form-lat');
+    const lonInput = document.getElementById('uni-form-lon');
+    const titleEl = document.getElementById('uni-form-title');
+    const hintEl = document.getElementById('uni-form-hint');
+    const submitBtn = document.getElementById('uni-form-submit-btn');
+    const noticeEl = document.getElementById('uni-sync-notice');
+
+    if (idInput) idInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (countryInput) countryInput.value = '';
+    if (latInput) latInput.value = '';
+    if (lonInput) lonInput.value = '';
+    if (titleEl) titleEl.innerText = '➕ Add New Institution';
+    if (hintEl) hintEl.innerText = '';
+    if (submitBtn) submitBtn.innerText = 'Save Institution';
+    if (noticeEl) noticeEl.style.display = 'none';
+}
+
+function editInstitution(id) {
+    const uni = cachedInstitutionsList.find(u => u.id === id);
+    if (!uni) return;
+
+    toggleAddUniForm(true);
+    document.getElementById('uni-form-id').value = uni.id;
+    document.getElementById('uni-form-name').value = uni.name || '';
+    document.getElementById('uni-form-country').value = uni.country || '';
+    document.getElementById('uni-form-lat').value = (uni.lat !== null && uni.lat !== undefined) ? uni.lat : '';
+    document.getElementById('uni-form-lon').value = (uni.lon !== null && uni.lon !== undefined) ? uni.lon : '';
+    
+    document.getElementById('uni-form-title').innerText = `✏️ Edit Institution: ${uni.name}`;
+    document.getElementById('uni-form-submit-btn').innerText = 'Update Institution';
+    
+    const piCount = uni.researcher_count || 0;
+    const hint = document.getElementById('uni-form-hint');
+    const notice = document.getElementById('uni-sync-notice');
+    if (piCount > 0) {
+        if (hint) hint.innerText = `Affiliated with ${piCount} researcher(s)`;
+        if (notice) notice.style.display = 'block';
+    } else {
+        if (hint) hint.innerText = 'No affiliated researchers yet';
+        if (notice) notice.style.display = 'none';
+    }
+
+    const card = document.getElementById('uni-form-card');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function submitUniForm() {
+    const id = document.getElementById('uni-form-id').value;
+    const name = document.getElementById('uni-form-name').value.trim();
+    const country = document.getElementById('uni-form-country').value.trim() || 'USA';
+    const latStr = document.getElementById('uni-form-lat').value.trim();
+    const lonStr = document.getElementById('uni-form-lon').value.trim();
+
+    if (!name) {
+        alert('Please enter an institution name.');
+        return;
+    }
+
+    const payload = {
+        name: name,
+        country: country,
+        lat: latStr !== '' ? parseFloat(latStr) : null,
+        lon: lonStr !== '' ? parseFloat(lonStr) : null
+    };
+
+    const isEdit = !!id;
+    if (isEdit) {
+        payload.id = parseInt(id, 10);
+    }
+
+    const endpoint = isEdit ? `${API_BASE}/universities/update` : `${API_BASE}/universities/add`;
+    const submitBtn = document.getElementById('uni-form-submit-btn');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (!res.ok) {
+            alert(`Error: ${result.error || 'Failed to save institution'}`);
+            return;
+        }
+
+        cancelUniForm();
+        await loadInstitutionsTable();
+        await reloadTagsAndFilters();
+    } catch (err) {
+        alert(`Request failed: ${err.message}`);
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+    }
+}
+
+async function deleteInstitution(id, name, piCount) {
+    let confirmMsg = `Are you sure you want to delete "${name}"?`;
+    if (piCount > 0) {
+        confirmMsg = `Are you sure you want to delete "${name}"?\n\n⚠️ WARNING: There are ${piCount} researcher(s) affiliated with this institution. They will be unlinked (their profiles will be kept, but institution cleared).`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/universities/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const result = await res.json();
+        if (!res.ok) {
+            alert(`Error: ${result.error || 'Failed to delete institution'}`);
+            return;
+        }
+
+        // If the deleted institution was in activeUniversities filter, remove it
+        if (activeUniversities.has(name)) {
+            activeUniversities.delete(name);
+        }
+
+        await loadInstitutionsTable();
+        await reloadTagsAndFilters();
+    } catch (err) {
+        alert(`Delete failed: ${err.message}`);
+    }
+}
+
+async function autoDetectCoordinates() {
+    const name = document.getElementById('uni-form-name').value.trim();
+    const country = document.getElementById('uni-form-country').value.trim();
+    const detectBtn = document.getElementById('uni-detect-coord-btn');
+
+    if (!name) {
+        alert('Please enter an institution name first to look up coordinates.');
+        return;
+    }
+
+    if (detectBtn) {
+        detectBtn.disabled = true;
+        detectBtn.innerText = '⌛ Searching...';
+    }
+
+    try {
+        let query = `${name} ${country}`.trim();
+        let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+        let res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        let data = await res.json();
+
+        if (!data || data.length === 0) {
+            url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1`;
+            res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            data = await res.json();
+        }
+
+        if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat).toFixed(4);
+            const lon = parseFloat(data[0].lon).toFixed(4);
+            document.getElementById('uni-form-lat').value = lat;
+            document.getElementById('uni-form-lon').value = lon;
+            
+            if (!country && data[0].display_name) {
+                const parts = data[0].display_name.split(',');
+                const detectedCountry = parts[parts.length - 1].trim();
+                if (detectedCountry) {
+                    document.getElementById('uni-form-country').value = detectedCountry;
+                }
+            }
+        } else {
+            alert(`Could not automatically find coordinates for "${name}". You can enter latitude and longitude manually.`);
+        }
+    } catch (err) {
+        alert(`Geocoding lookup failed: ${err.message}. You can enter coordinates manually.`);
+    } finally {
+        if (detectBtn) {
+            detectBtn.disabled = false;
+            detectBtn.innerText = '🌐 Auto-Detect';
+        }
+    }
+}
+
+function flyToInstitutionFromModal(lat, lon, name) {
+    closeInstitutionModal();
+    if (!mapVisible) {
+        toggleMap(true);
+    }
+    setTimeout(() => {
+        flyToUniversity(name, lat, lon);
+    }, 300);
+}
+
+async function reloadTagsAndFilters() {
+    try {
+        const res = await fetch(`${API_BASE}/tags`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        // Re-build sidebar university list preserving selected filters
+        buildFilters(data.methods, data.domains, data.universities, data.statuses);
+        
+        // Re-fetch universities for the researcher editor dropdown
+        await fetchUniversities();
+        
+        // Re-render cards and map markers
+        requestRender();
+    } catch (err) {
+        console.error("Failed to reload tags and filters:", err);
     }
 }

@@ -59,11 +59,17 @@ Applying for PhD or postdoctoral positions across academia (**Robotics, Quantum 
 - **Smart `@` Professor Mention Badges**: Type `@` in the journal to auto-suggest professors; creates interactive clickable pills that navigate directly to the professor's card and records bi-directional communication history.
 - **Global Batch Management**: Clean top-bar selection for single-click card editing and deletion.
 
-### 5. ⚡ Zero-Dependency Lightweight Architecture (零依赖架构)
+### 5. 🏛️ Institution & University Management (院校与机构管理)
+- **Full CRUD Support**: Add new institutions, edit existing universities, or remove institutions directly from the UI.
+- **Auto-Geocoding**: Built-in OpenStreetMap Nominatim coordinate auto-detector (`🌐 Auto-Detect`) instantly finds latitude and longitude for any campus without manual coordinate lookup.
+- **Affiliated Researcher Synchronization**: Renaming an institution or updating its coordinates automatically synchronizes all linked faculty cards and map markers in real-time.
+- **Safe Deletion Guard**: Deleting an institution safely unlinks affiliated researcher profiles (clears university field while preserving all profile data, contact records, and notes).
+
+### 6. ⚡ Zero-Dependency Lightweight Architecture (零依赖架构)
 - **Vanilla Python Standard Library**: Built strictly using `http.server`, `sqlite3`, `urllib`, and `json`.
 - **Zero pip install required**: No Node.js, no Docker, no external database servers. Runs out of the box on Windows, macOS, and Linux.
 
-### 6. 🔒 100% Privacy & Local-First (数据私密性保证)
+### 7. 🔒 100% Privacy & Local-First (数据私密性保证)
 - Your contact history, personal ratings, and notes are stored strictly in a local SQLite file (`advisor.db` or legacy `neuroai.db`).
 - Nothing is uploaded to third-party clouds or telemetry servers.
 
