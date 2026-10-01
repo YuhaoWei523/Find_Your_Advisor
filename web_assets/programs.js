@@ -412,18 +412,42 @@ function renderCardsView(programs) {
                     ${deadlineHtml}
                 </div>
 
-                <!-- Key Requirements -->
+                <!-- Key Requirements Grid -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.82em; margin-bottom: 12px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #f1f5f9;">
                     <div>
                         <span style="color:#64748b;">💵 Fee:</span> <strong>${escapeHtml(p.app_fee || 'Unspecified')}</strong>
                     </div>
                     <div>
+                        <span style="color:#64748b;">✉️ Rec Letters:</span> <strong>${escapeHtml(p.letters_of_rec || '3 letters')}</strong>
+                    </div>
+                    <div>
+                        <span style="color:#64748b;">🎓 Master's?:</span> <strong>${escapeHtml(p.requires_master || 'No (Bachelor\'s OK)')}</strong>
+                    </div>
+                    <div>
                         <span style="color:#64748b;">📝 GRE:</span> <strong>${escapeHtml(p.gre_requirement || 'Not Required')}</strong>
                     </div>
-                    <div style="grid-column: 1/-1;">
-                        <span style="color:#64748b;">🌐 English:</span> <strong>${escapeHtml(p.english_requirement || 'Unspecified')}</strong>
+                    <div style="grid-column: 1/-1; border-top: 1px dashed #e2e8f0; padding-top: 6px; margin-top: 2px;">
+                        <span style="color:#64748b;">🌐 TOEFL / DET:</span> <strong>${escapeHtml(p.toefl_det || p.english_requirement || 'Unspecified')}</strong>
                     </div>
                 </div>
+
+                <!-- Fee Waiver Alert / Info Session -->
+                ${p.fee_waiver_info ? `
+                    <div style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 8px 10px; border-radius: 8px; font-size: 0.82em; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 6px;">
+                        <span>🎁</span>
+                        <div style="flex:1;">
+                            <strong>Fee Waiver / Info Session:</strong> 
+                            ${renderClickableLinks(p.fee_waiver_info)}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- International Student Stats (if found) -->
+                ${p.intl_student_stats ? `
+                    <div style="background: #f0fdfa; border: 1px solid #ccfbf1; color: #0f766e; padding: 6px 10px; border-radius: 8px; font-size: 0.8em; margin-bottom: 12px;">
+                        🌍 <strong>Intl Admissions:</strong> ${escapeHtml(p.intl_student_stats)}
+                    </div>
+                ` : ''}
 
                 <!-- Affiliated PIs Link & Matched Faculty -->
                 <div style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed #e2e8f0;">
@@ -526,13 +550,18 @@ function renderTableView(programs) {
                 <td style="padding: 12px 14px; font-size: 0.85em; font-weight: 600; white-space: nowrap;">
                     ${deadlineText}
                 </td>
+                <td style="padding: 12px 14px; font-size: 0.82em; color: #475569; max-width: 170px;">
+                    <div>${escapeHtml(p.toefl_det || p.english_requirement || '-')}</div>
+                </td>
                 <td style="padding: 12px 14px; font-size: 0.82em; color: #475569;">
-                    <div>Fee: <strong>${escapeHtml(p.app_fee || '-')}</strong></div>
-                    <div>GRE: <strong>${escapeHtml(p.gre_requirement || '-')}</strong></div>
+                    <div>Fee: <strong>${escapeHtml(p.app_fee || '-')}</strong> (${escapeHtml(p.letters_of_rec || '3 recs')})</div>
+                    <div>Master's: <strong>${escapeHtml(p.requires_master || 'No')}</strong></div>
+                    ${p.fee_waiver_info ? `<div style="color:#059669; font-weight:600; margin-top:3px;">🎁 Waiver available</div>` : ''}
                 </td>
                 <td style="padding: 12px 14px; font-size: 0.82em;">
-                    <a href="${piLink}" style="color: var(--primary); font-weight: 600; text-decoration: none;">${piCount} PIs →</a>
+                    <a href="${piLink}" style="color: var(--primary); font-weight: 600; text-decoration: none;">${piCount} PIs in DB →</a>
                     ${p.faculty_match ? `<div style="font-size: 0.75em; color: #64748b; margin-top: 2px;">${escapeHtml(p.faculty_match)}</div>` : ''}
+                    ${p.intl_student_stats ? `<div style="font-size: 0.73em; color: #0d9488; margin-top: 2px;">🌍 ${escapeHtml(p.intl_student_stats)}</div>` : ''}
                 </td>
                 <td style="padding: 12px 14px; text-align: right; white-space: nowrap;">
                     ${p.portal_url ? `<a href="${escapeHtml(p.portal_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-action" style="padding: 4px 8px; font-size: 0.8em; margin-right: 4px; text-decoration:none;">🔗</a>` : ''}
@@ -579,7 +608,12 @@ async function quickUpdateProgramStatus(id, newStatus) {
             status: newStatus,
             portal_url: prog.portal_url,
             faculty_match: prog.faculty_match,
-            notes: prog.notes
+            notes: prog.notes,
+            toefl_det: prog.toefl_det,
+            requires_master: prog.requires_master,
+            intl_student_stats: prog.intl_student_stats,
+            fee_waiver_info: prog.fee_waiver_info,
+            letters_of_rec: prog.letters_of_rec
         };
 
         const res = await fetch(`${API_BASE}/programs/update`, {
@@ -614,6 +648,11 @@ function openProgramModal(id = null) {
     document.getElementById('prog-gre').value = 'Not Required';
     document.getElementById('prog-english').value = '';
     document.getElementById('prog-status').value = 'Considering';
+    if (document.getElementById('prog-toefl-det')) document.getElementById('prog-toefl-det').value = '';
+    if (document.getElementById('prog-requires-master')) document.getElementById('prog-requires-master').value = "No (Bachelor's eligible)";
+    if (document.getElementById('prog-letters')) document.getElementById('prog-letters').value = '3 letters required';
+    if (document.getElementById('prog-fee-waiver')) document.getElementById('prog-fee-waiver').value = '';
+    if (document.getElementById('prog-intl-stats')) document.getElementById('prog-intl-stats').value = '';
     document.getElementById('prog-portal').value = '';
     document.getElementById('prog-faculty').value = '';
     document.getElementById('prog-notes').value = '';
@@ -632,6 +671,11 @@ function openProgramModal(id = null) {
             document.getElementById('prog-gre').value = prog.gre_requirement || 'Not Required';
             document.getElementById('prog-english').value = prog.english_requirement || '';
             document.getElementById('prog-status').value = prog.status || 'Considering';
+            if (document.getElementById('prog-toefl-det')) document.getElementById('prog-toefl-det').value = prog.toefl_det || '';
+            if (document.getElementById('prog-requires-master')) document.getElementById('prog-requires-master').value = prog.requires_master || "No (Bachelor's eligible)";
+            if (document.getElementById('prog-letters')) document.getElementById('prog-letters').value = prog.letters_of_rec || '';
+            if (document.getElementById('prog-fee-waiver')) document.getElementById('prog-fee-waiver').value = prog.fee_waiver_info || '';
+            if (document.getElementById('prog-intl-stats')) document.getElementById('prog-intl-stats').value = prog.intl_student_stats || '';
             document.getElementById('prog-portal').value = prog.portal_url || '';
             document.getElementById('prog-faculty').value = prog.faculty_match || '';
             document.getElementById('prog-notes').value = prog.notes || '';
@@ -662,6 +706,11 @@ async function saveProgram() {
     const portal = document.getElementById('prog-portal').value.trim();
     const faculty = document.getElementById('prog-faculty').value.trim();
     const notes = document.getElementById('prog-notes').value.trim();
+    const toeflDet = document.getElementById('prog-toefl-det') ? document.getElementById('prog-toefl-det').value.trim() : '';
+    const reqMaster = document.getElementById('prog-requires-master') ? document.getElementById('prog-requires-master').value : "No (Bachelor's eligible)";
+    const letters = document.getElementById('prog-letters') ? document.getElementById('prog-letters').value.trim() : '';
+    const feeWaiver = document.getElementById('prog-fee-waiver') ? document.getElementById('prog-fee-waiver').value.trim() : '';
+    const intlStats = document.getElementById('prog-intl-stats') ? document.getElementById('prog-intl-stats').value.trim() : '';
 
     if (!name || !uniId) {
         alert('Please fill in both the Program Name and University.');
@@ -680,7 +729,12 @@ async function saveProgram() {
         status: status,
         portal_url: portal,
         faculty_match: faculty,
-        notes: notes
+        notes: notes,
+        toefl_det: toeflDet,
+        requires_master: reqMaster,
+        letters_of_rec: letters,
+        fee_waiver_info: feeWaiver,
+        intl_student_stats: intlStats
     };
 
     const isEdit = !!id;
@@ -772,7 +826,8 @@ function exportProgramsCSV() {
 
     const headers = [
         'ID', 'University', 'Country', 'Program Name', 'Degree', 'Department',
-        'Status', 'Deadline', 'Application Fee', 'GRE', 'English Requirement',
+        'Status', 'Deadline', 'Application Fee', 'Fee Waiver Info', 'Language (TOEFL/DET)',
+        'Master Required?', 'Letters of Rec', 'International Stats', 'GRE',
         'Portal URL', 'Target Faculty', 'Notes', 'Affiliated PIs Count'
     ];
 
@@ -1114,4 +1169,14 @@ function escapeHtml(str) {
 function escapeJs(str) {
     if (str === null || str === undefined) return '';
     return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+
+function renderClickableLinks(text) {
+    if (!text) return '';
+    const urlRegex = /(https?:\/\/[^\s,]+)/g;
+    const safeText = escapeHtml(text);
+    return safeText.replace(urlRegex, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#047857; font-weight:700; text-decoration:underline;">[Session / Waiver Link ↗]</a>`;
+    });
 }

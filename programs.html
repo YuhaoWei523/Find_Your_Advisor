@@ -479,14 +479,15 @@
             <table class="programs-table">
                 <thead>
                     <tr>
-                        <th style="width: 180px;">University</th>
-                        <th style="width: 220px;">Program & Degree</th>
-                        <th style="width: 180px;">Department</th>
-                        <th style="width: 160px;">Application Status</th>
-                        <th style="width: 140px;">Deadline</th>
-                        <th style="width: 150px;">Requirements</th>
-                        <th>Faculty & PIs</th>
-                        <th style="width: 130px; text-align: right;">Actions</th>
+                        <th style="width: 170px;">University</th>
+                        <th style="width: 200px;">Program & Degree</th>
+                        <th style="width: 160px;">Department</th>
+                        <th style="width: 140px;">Status</th>
+                        <th style="width: 130px;">Deadline</th>
+                        <th style="width: 170px;">Language (TOEFL/DET)</th>
+                        <th style="width: 170px;">Requirements & Waiver</th>
+                        <th>Faculty & Stats</th>
+                        <th style="width: 120px; text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="programs-table-body"></tbody>
@@ -530,7 +531,7 @@
                 <input type="text" id="prog-department" placeholder="e.g. Department of Computer Science & Artificial Intelligence">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
                 <div class="form-group">
                     <label>Application Deadline</label>
                     <input type="date" id="prog-deadline">
@@ -538,6 +539,36 @@
                 <div class="form-group">
                     <label>Application Fee</label>
                     <input type="text" id="prog-fee" placeholder="e.g. $90 or Waived">
+                </div>
+                <div class="form-group">
+                    <label>Letters of Rec</label>
+                    <input type="text" id="prog-letters" placeholder="e.g. 3 letters required">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                    <label>Language Requirements (TOEFL / DET & Subscores)</label>
+                    <input type="text" id="prog-toefl-det" placeholder="e.g. TOEFL 100+ (R22, L22, S22, W22); DET 130+">
+                </div>
+                <div class="form-group">
+                    <label>Master's Degree Required?</label>
+                    <select id="prog-requires-master">
+                        <option value="No (Bachelor's eligible)">No (Direct from Bachelor's OK)</option>
+                        <option value="Yes (Master's required)">Yes (Master's degree required)</option>
+                        <option value="Optional / Recommended">Optional / Recommended</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                    <label>Fee Waiver Info Session & Link</label>
+                    <input type="text" id="prog-fee-waiver" placeholder="e.g. Attend Virtual Info Session for $100 waiver: https://...">
+                </div>
+                <div class="form-group">
+                    <label>Past International Student Stats (if found)</label>
+                    <input type="text" id="prog-intl-stats" placeholder="e.g. ~35% international; funding fully covered">
                 </div>
             </div>
 
@@ -552,8 +583,8 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>English Requirement (TOEFL / IELTS)</label>
-                    <input type="text" id="prog-english" placeholder="e.g. TOEFL 100+ / IELTS 7.5">
+                    <label>General English / IELTS (Optional fallback)</label>
+                    <input type="text" id="prog-english" placeholder="e.g. IELTS 7.5">
                 </div>
             </div>
 

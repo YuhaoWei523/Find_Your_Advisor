@@ -59,13 +59,18 @@ Applying for PhD or postdoctoral positions across academia (**Robotics, Quantum 
 - **Smart `@` Professor Mention Badges**: Type `@` in the journal to auto-suggest professors; creates interactive clickable pills that navigate directly to the professor's card and records bi-directional communication history.
 - **Global Batch Management**: Clean top-bar selection for single-click card editing and deletion.
 
-### 5. 🎓 Graduate Program & Application Tracker (学位项目与申请管理)
-- **Dedicated Program Workspace (`programs.html`)**: Track graduate degree programs (PhD, Direct PhD, Master's, Postdoc, Fellowship) organized by institution, department, and application deadline.
-- **Deadline Radar & Countdown Alert**: Dynamic deadline tracker with urgent alerts for deadlines within 7 and 30 days, plus visual indicators for upcoming/passed milestones.
-- **Dual Visual Modes**: Switch seamlessly between interactive **Card Grid View** (with quick 1-click status changers) and dense **Spreadsheet Table View**.
+### 5. 🎓 Graduate Program & Admissions Intelligence Tracker (学位项目与申请全景管理)
+- **Dedicated Program Workspace (`programs.html`)**: Track graduate degree programs (PhD, Master's, Postdoc, Fellowship) organized by institution, department, and deadline. Built-in clean architecture and reserved database schema for future Master's and dual-degree programs.
+- **Deadline Radar & Countdown Alert**: Dynamic deadline tracker with urgent visual alerts for milestones within 7 and 30 days, plus indicators for upcoming vs. passed deadlines.
+- **Comprehensive Admissions Requirements**:
+  - **Language Thresholds & Subscores**: Detailed tracking for TOEFL iBT and Duolingo English Test (DET) with specific subscore cutoffs (e.g. speaking minimums).
+  - **Prerequisite Degree Verification**: Explicitly tracks whether a Master's degree is required or whether applicants are eligible for direct admission with a Bachelor's.
+  - **Letters of Recommendation**: Displays exact number of required recommendation letters (e.g. 2 or 3 letters).
+  - **Application Fee & Fee Waiver Info Sessions**: Highlights application fees alongside clickable links to virtual info sessions and diversity waiver programs offering free application codes.
+  - **Past International Student Admission Stats**: Records cohort sizes, international student acceptance rates, and 5-year full stipend/fellowship guarantees.
+- **Dual Visual Modes**: Switch seamlessly between responsive **Card Grid View** (with quick 1-click status changers) and dense **Spreadsheet Table View**.
 - **Advisor Cross-Linking**: Automatically counts affiliated faculty from your database for each institution, displays matched target advisors, and provides 1-click navigation to view professor profiles.
-- **Application Requirements & Portal**: Track application fee, GRE requirements, language thresholds (TOEFL/IELTS), statement of purpose strategy notes, and direct official portal links.
-- **1-Click CSV Data Export**: Export all tracked programs to standard `.csv` for offline backup, spreadsheets, or sharing.
+- **1-Click CSV Data Export**: Export all tracked programs with all admissions metrics to standard `.csv` for offline backup or sharing.
 
 ### 6. 🏛️ Institution & University Management (院校与机构管理)
 - **Full CRUD Support**: Add new institutions, edit existing universities, or remove institutions directly from the UI.

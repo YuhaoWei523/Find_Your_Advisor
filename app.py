@@ -15,6 +15,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 DB_PATH = os.environ.get('ADVISOR_DB', 'neuroai.db' if os.path.exists('neuroai.db') else 'advisor.db')
 SEED_FILE = 'seed_universities.json'
+SEED_PROGRAMS_FILE = 'seed_programs.json'
 
 DEFAULT_METHODS = [
     'BCI', 'Brain Modeling', 'Electrophysiology', 'Genomics / Bioinformatics',
@@ -96,6 +97,11 @@ def init_database_if_needed():
         portal_url TEXT,
         faculty_match TEXT,
         notes TEXT,
+        toefl_det TEXT,
+        requires_master TEXT,
+        intl_student_stats TEXT,
+        fee_waiver_info TEXT,
+        letters_of_rec TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(university_id) REFERENCES universities(id) ON DELETE SET NULL
     )
@@ -137,6 +143,49 @@ def init_database_if_needed():
             print(f"[+] Seeded {len(unis)} universities into empty database.")
         except Exception as e:
             print(f"[!] Warning: Failed to seed universities: {e}")
+
+    # Seed initial programs if empty
+    cursor.execute("SELECT COUNT(*) FROM programs")
+    if cursor.fetchone()[0] == 0 and os.path.exists(SEED_PROGRAMS_FILE):
+        try:
+            cursor.execute("SELECT id, name FROM universities")
+            uni_map = {row[1].lower().strip(): row[0] for row in cursor.fetchall()}
+            for k in list(uni_map.keys()):
+                uni_map[k.split('(')[0].strip()] = uni_map[k]
+
+            with open(SEED_PROGRAMS_FILE, 'r', encoding='utf-8') as f:
+                progs = json.load(f)
+                seeded_p = 0
+                for p in progs:
+                    uname = p.get('university_name', '').strip()
+                    uid = uni_map.get(uname.lower()) or uni_map.get(uname.split('(')[0].strip().lower())
+                    if not uid:
+                        for uk in uni_map:
+                            if uname.lower() in uk or uk in uname.lower():
+                                uid = uni_map[uk]
+                                break
+                    if uid:
+                        cursor.execute("""
+                        INSERT INTO programs (
+                            university_id, name, degree, department, deadline, app_fee,
+                            gre_requirement, english_requirement, status, portal_url,
+                            faculty_match, notes, toefl_det, requires_master,
+                            intl_student_stats, fee_waiver_info, letters_of_rec
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            uid, p.get('name'), p.get('degree', 'PhD'), p.get('department'),
+                            p.get('deadline'), p.get('app_fee'), p.get('gre_requirement', 'Not Required'),
+                            p.get('toefl_det', ''), p.get('status', 'Considering'), p.get('portal_url', ''),
+                            p.get('faculty_match', ''), p.get('notes', ''), p.get('toefl_det', ''),
+                            p.get('requires_master', "No (Bachelor's eligible)"),
+                            p.get('intl_student_stats', ''), p.get('fee_waiver_info', ''),
+                            p.get('letters_of_rec', '3 letters required')
+                        ))
+                        seeded_p += 1
+            conn.commit()
+            print(f"[+] Seeded {seeded_p} sample academic programs into empty database.")
+        except Exception as e:
+            print(f"[!] Warning: Failed to seed programs: {e}")
 
     conn.close()
 
@@ -635,9 +684,12 @@ class RequestHandler(BaseHTTPRequestHandler):
     # --- Program Management Handlers ---
     # ==========================================
     def handle_get_programs(self, query_string=''):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
+        params = urllib.parse.parse_qs(query_string) if query_string else {}
+        degree_filter = params.get('degree', [None])[0]
+        uni_filter = params.get('university_id', [None])[0]
+        status_filter = params.get('status', [None])[0]
+
+        query = """
             SELECT 
                 p.id, 
                 p.university_id, 
@@ -656,15 +708,38 @@ class RequestHandler(BaseHTTPRequestHandler):
                 p.portal_url, 
                 p.faculty_match, 
                 p.notes, 
+                p.toefl_det,
+                p.requires_master,
+                p.intl_student_stats,
+                p.fee_waiver_info,
+                p.letters_of_rec,
                 p.created_at,
                 (SELECT COUNT(*) FROM researchers r WHERE r.university_id = p.university_id) as affiliated_pi_count
             FROM programs p
             LEFT JOIN universities u ON p.university_id = u.id
+            WHERE 1=1
+        """
+        sql_params = []
+        if degree_filter and degree_filter != 'All':
+            query += " AND p.degree = ?"
+            sql_params.append(degree_filter)
+        if uni_filter:
+            query += " AND p.university_id = ?"
+            sql_params.append(int(uni_filter))
+        if status_filter and status_filter != 'All':
+            query += " AND p.status = ?"
+            sql_params.append(status_filter)
+
+        query += """
             ORDER BY 
                 CASE WHEN p.deadline IS NULL OR p.deadline = '' THEN 1 ELSE 0 END,
                 p.deadline ASC,
                 p.name ASC
-        """)
+        """
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, tuple(sql_params))
         rows = cursor.fetchall()
         result = [dict(r) for r in rows]
         conn.close()
@@ -691,6 +766,11 @@ class RequestHandler(BaseHTTPRequestHandler):
         portal_url = (data.get('portal_url') or '').strip()
         faculty_match = (data.get('faculty_match') or '').strip()
         notes = (data.get('notes') or '').strip()
+        toefl_det = (data.get('toefl_det') or '').strip()
+        requires_master = (data.get('requires_master') or '').strip()
+        intl_student_stats = (data.get('intl_student_stats') or '').strip()
+        fee_waiver_info = (data.get('fee_waiver_info') or '').strip()
+        letters_of_rec = (data.get('letters_of_rec') or '').strip()
         
         if not name or not university_id:
             self.send_response(400)
@@ -705,12 +785,14 @@ class RequestHandler(BaseHTTPRequestHandler):
             INSERT INTO programs (
                 university_id, name, degree, department, deadline, app_fee,
                 gre_requirement, english_requirement, status, portal_url,
-                faculty_match, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                faculty_match, notes, toefl_det, requires_master,
+                intl_student_stats, fee_waiver_info, letters_of_rec
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             int(university_id), name, degree, department, deadline, app_fee,
             gre_requirement, english_requirement, status, portal_url,
-            faculty_match, notes
+            faculty_match, notes, toefl_det, requires_master,
+            intl_student_stats, fee_waiver_info, letters_of_rec
         ))
         conn.commit()
         new_id = cursor.lastrowid
@@ -739,6 +821,11 @@ class RequestHandler(BaseHTTPRequestHandler):
         portal_url = (data.get('portal_url') or '').strip()
         faculty_match = (data.get('faculty_match') or '').strip()
         notes = (data.get('notes') or '').strip()
+        toefl_det = (data.get('toefl_det') or '').strip()
+        requires_master = (data.get('requires_master') or '').strip()
+        intl_student_stats = (data.get('intl_student_stats') or '').strip()
+        fee_waiver_info = (data.get('fee_waiver_info') or '').strip()
+        letters_of_rec = (data.get('letters_of_rec') or '').strip()
         
         if not p_id or not name or not university_id:
             self.send_response(400)
@@ -754,12 +841,15 @@ class RequestHandler(BaseHTTPRequestHandler):
                 university_id = ?, name = ?, degree = ?, department = ?,
                 deadline = ?, app_fee = ?, gre_requirement = ?,
                 english_requirement = ?, status = ?, portal_url = ?,
-                faculty_match = ?, notes = ?
+                faculty_match = ?, notes = ?, toefl_det = ?,
+                requires_master = ?, intl_student_stats = ?,
+                fee_waiver_info = ?, letters_of_rec = ?
             WHERE id = ?
         """, (
             int(university_id), name, degree, department, deadline, app_fee,
             gre_requirement, english_requirement, status, portal_url,
-            faculty_match, notes, int(p_id)
+            faculty_match, notes, toefl_det, requires_master,
+            intl_student_stats, fee_waiver_info, letters_of_rec, int(p_id)
         ))
         conn.commit()
         conn.close()
