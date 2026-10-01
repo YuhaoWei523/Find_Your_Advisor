@@ -102,6 +102,10 @@ def init_database_if_needed():
         intl_student_stats TEXT,
         fee_waiver_info TEXT,
         letters_of_rec TEXT,
+        discipline_tag TEXT,
+        intl_waiver_type TEXT,
+        intl_waiver_event TEXT,
+        intl_waiver_link TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(university_id) REFERENCES universities(id) ON DELETE SET NULL
     )
@@ -713,6 +717,10 @@ class RequestHandler(BaseHTTPRequestHandler):
                 p.intl_student_stats,
                 p.fee_waiver_info,
                 p.letters_of_rec,
+                p.discipline_tag,
+                p.intl_waiver_type,
+                p.intl_waiver_event,
+                p.intl_waiver_link,
                 p.created_at,
                 (SELECT COUNT(*) FROM researchers r WHERE r.university_id = p.university_id) as affiliated_pi_count
             FROM programs p
@@ -729,6 +737,16 @@ class RequestHandler(BaseHTTPRequestHandler):
         if status_filter and status_filter != 'All':
             query += " AND p.status = ?"
             sql_params.append(status_filter)
+
+        discipline_filter = params.get('discipline', [None])[0]
+        if discipline_filter and discipline_filter != 'All':
+            query += " AND p.discipline_tag LIKE ?"
+            sql_params.append(f"%{discipline_filter}%")
+
+        waiver_filter = params.get('waiver', [None])[0]
+        if waiver_filter and waiver_filter != 'All':
+            query += " AND p.intl_waiver_type LIKE ?"
+            sql_params.append(f"%{waiver_filter}%")
 
         query += """
             ORDER BY 
@@ -771,6 +789,10 @@ class RequestHandler(BaseHTTPRequestHandler):
         intl_student_stats = (data.get('intl_student_stats') or '').strip()
         fee_waiver_info = (data.get('fee_waiver_info') or '').strip()
         letters_of_rec = (data.get('letters_of_rec') or '').strip()
+        discipline_tag = (data.get('discipline_tag') or '').strip()
+        intl_waiver_type = (data.get('intl_waiver_type') or '').strip()
+        intl_waiver_event = (data.get('intl_waiver_event') or '').strip()
+        intl_waiver_link = (data.get('intl_waiver_link') or '').strip()
         
         if not name or not university_id:
             self.send_response(400)
@@ -786,13 +808,15 @@ class RequestHandler(BaseHTTPRequestHandler):
                 university_id, name, degree, department, deadline, app_fee,
                 gre_requirement, english_requirement, status, portal_url,
                 faculty_match, notes, toefl_det, requires_master,
-                intl_student_stats, fee_waiver_info, letters_of_rec
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                intl_student_stats, fee_waiver_info, letters_of_rec,
+                discipline_tag, intl_waiver_type, intl_waiver_event, intl_waiver_link
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             int(university_id), name, degree, department, deadline, app_fee,
             gre_requirement, english_requirement, status, portal_url,
             faculty_match, notes, toefl_det, requires_master,
-            intl_student_stats, fee_waiver_info, letters_of_rec
+            intl_student_stats, fee_waiver_info, letters_of_rec,
+            discipline_tag, intl_waiver_type, intl_waiver_event, intl_waiver_link
         ))
         conn.commit()
         new_id = cursor.lastrowid
@@ -826,6 +850,10 @@ class RequestHandler(BaseHTTPRequestHandler):
         intl_student_stats = (data.get('intl_student_stats') or '').strip()
         fee_waiver_info = (data.get('fee_waiver_info') or '').strip()
         letters_of_rec = (data.get('letters_of_rec') or '').strip()
+        discipline_tag = (data.get('discipline_tag') or '').strip()
+        intl_waiver_type = (data.get('intl_waiver_type') or '').strip()
+        intl_waiver_event = (data.get('intl_waiver_event') or '').strip()
+        intl_waiver_link = (data.get('intl_waiver_link') or '').strip()
         
         if not p_id or not name or not university_id:
             self.send_response(400)
@@ -843,13 +871,15 @@ class RequestHandler(BaseHTTPRequestHandler):
                 english_requirement = ?, status = ?, portal_url = ?,
                 faculty_match = ?, notes = ?, toefl_det = ?,
                 requires_master = ?, intl_student_stats = ?,
-                fee_waiver_info = ?, letters_of_rec = ?
+                fee_waiver_info = ?, letters_of_rec = ?,
+                discipline_tag = ?, intl_waiver_type = ?, intl_waiver_event = ?, intl_waiver_link = ?
             WHERE id = ?
         """, (
             int(university_id), name, degree, department, deadline, app_fee,
             gre_requirement, english_requirement, status, portal_url,
             faculty_match, notes, toefl_det, requires_master,
-            intl_student_stats, fee_waiver_info, letters_of_rec, int(p_id)
+            intl_student_stats, fee_waiver_info, letters_of_rec,
+            discipline_tag, intl_waiver_type, intl_waiver_event, intl_waiver_link, int(p_id)
         ))
         conn.commit()
         conn.close()

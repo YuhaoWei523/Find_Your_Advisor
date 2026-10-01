@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academic Programs & Applications - Find Your Advisor</title>
+    <title>Academic Programs & Admissions - Find Your Advisor</title>
     <link rel="icon" type="image/jpeg" href="web_assets/logo.jpg">
     <style>
         :root {
@@ -15,7 +15,7 @@
             --success: #10b981;
             --warning: #f59e0b;
             --border: #e2e8f0;
-            --bg-app: #f8fafc;
+            --bg-body: #f8fafc;
             --bg-card: #ffffff;
             --nav-bg: #0f172a;
             --nav-text: #f8fafc;
@@ -23,27 +23,32 @@
             --text-muted: #64748b;
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background: var(--bg-app);
+            background: var(--bg-body);
             color: var(--text-main);
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
         }
 
         /* Top Navbar */
         .top-navbar {
-            position: sticky;
-            top: 0;
+            height: 64px;
+            flex-shrink: 0;
             z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: var(--nav-bg);
-            padding: 12px 24px;
+            padding: 0 24px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
             color: var(--nav-text);
             border-bottom: 1px solid rgba(255,255,255,0.05);
@@ -75,7 +80,7 @@
             align-items: center;
         }
 
-        /* Standard Buttons */
+        /* Buttons */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -89,14 +94,11 @@
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             border: none;
             outline: none;
-            box-sizing: border-box;
         }
         .btn-primary { background: var(--primary); color: white; box-shadow: 0 1px 2px rgba(37,99,235,0.2); }
         .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(37,99,235,0.25); }
         .btn-accent { background: var(--accent); color: white; box-shadow: 0 1px 2px rgba(124,58,237,0.2); }
         .btn-accent:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(124,58,237,0.25); }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
         .btn-outline { background: transparent; border: 1.5px solid rgba(255,255,255,0.25); color: var(--nav-text); }
         .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
         .btn-action { background: #ffffff; border: 1px solid var(--border); color: var(--text-main); }
@@ -104,30 +106,183 @@
         .btn-cancel { background: #f1f5f9; border: 1px solid var(--border); color: var(--text-muted); }
         .btn-cancel:hover { background: #e2e8f0; }
 
-        /* Container & Layout */
-        .container {
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 24px 32px 48px;
-            width: 100%;
-            box-sizing: border-box;
+        /* Two-Column App Layout */
+        .app-container {
+            display: flex;
+            width: 100vw;
+            height: calc(100vh - 64px);
+            overflow: hidden;
+        }
+
+        /* Sidebar Filter Panel */
+        .sidebar {
+            width: 330px;
+            flex-shrink: 0;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 20px;
+            box-shadow: 1px 0 3px rgba(0,0,0,0.02);
+        }
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
         }
 
-        /* Metrics & Overview Banner */
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+        .sidebar-title {
+            font-size: 1.05em;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sidebar-reset-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 0.82em;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+        }
+        .sidebar-reset-btn:hover {
+            background: #eff6ff;
+        }
+
+        .filter-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .filter-section-title {
+            font-size: 0.8em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        /* Filter Pills & Select Options */
+        .filter-pill {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.86em;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .filter-pill:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .filter-pill.active {
+            background: #eff6ff;
+            border-color: var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .filter-pill.active.gold {
+            background: #fefce8;
+            border-color: #facc15;
+            color: #854d0e;
+        }
+        .filter-pill.active.green {
+            background: #f0fdf4;
+            border-color: #4ade80;
+            color: #166534;
+        }
+        .filter-pill-count {
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 0.78em;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+        .filter-pill.active .filter-pill-count {
+            background: rgba(37, 99, 235, 0.15);
+            color: var(--primary);
+        }
+        .filter-pill.active.gold .filter-pill-count {
+            background: #fef08a;
+            color: #854d0e;
+        }
+        .filter-pill.active.green .filter-pill-count {
+            background: #bbf7d0;
+            color: #166534;
+        }
+
+        .filter-dropdown {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.88em;
+            background: white;
+            color: var(--text-main);
+            outline: none;
+            cursor: pointer;
+        }
+        .filter-dropdown:focus {
+            border-color: var(--primary);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background: var(--bg-body);
+            padding: 24px 32px 48px;
+            gap: 18px;
+        }
+        .main-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .main-content::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* Metrics Banner */
         .metrics-banner {
             background: white;
             border-radius: 16px;
-            padding: 20px 24px;
+            padding: 18px 24px;
             border: 1px solid var(--border);
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 14px;
         }
         .metric-header {
             display: flex;
@@ -138,7 +293,7 @@
             background: linear-gradient(135deg, var(--primary), #3b82f6);
             color: white;
             font-weight: 800;
-            font-size: 1.1em;
+            font-size: 1.05em;
             padding: 6px 14px;
             border-radius: 12px;
             box-shadow: 0 3px 8px rgba(37,99,235,0.25);
@@ -152,21 +307,9 @@
             font-size: 0.88em;
             font-weight: 500;
         }
-        .deadline-highlight-box.danger {
-            background: #fee2e2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-        }
-        .deadline-highlight-box.warning {
-            background: #fef3c7;
-            border: 1px solid #fde68a;
-            color: #92400e;
-        }
-        .deadline-highlight-box.info {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            color: #1e40af;
-        }
+        .deadline-highlight-box.danger { background: #fee2e2; border: 1px solid #fecaca; color: #991b1b; }
+        .deadline-highlight-box.warning { background: #fef3c7; border: 1px solid #fde68a; color: #92400e; }
+        .deadline-highlight-box.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
         .countdown-badge {
             background: white;
             padding: 2px 8px;
@@ -186,17 +329,17 @@
             margin-bottom: 4px;
         }
 
-        /* Toolbar & Filters */
+        /* Search Toolbar */
         .toolbar {
             background: white;
             border-radius: 14px;
-            padding: 16px 20px;
+            padding: 14px 18px;
             border: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 14px;
+            gap: 12px;
         }
         .search-bar-wrap {
             flex: 1;
@@ -208,7 +351,6 @@
             border: 1px solid var(--border);
             border-radius: 10px;
             font-size: 0.92em;
-            box-sizing: border-box;
             outline: none;
             transition: all 0.2s ease;
         }
@@ -216,32 +358,46 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
         }
-        .filters-wrap {
+        .toolbar-actions {
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        /* Active Filter Chips Bar */
+        .active-chips-bar {
+            display: flex;
+            align-items: center;
             flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 4px;
         }
-        .filter-select {
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: white;
-            font-size: 0.88em;
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.82em;
+            font-weight: 500;
             color: var(--text-main);
-            outline: none;
-            cursor: pointer;
-            transition: border-color 0.2s ease;
         }
-        .filter-select:focus {
-            border-color: var(--primary);
+        .chip-remove {
+            cursor: pointer;
+            color: #94a3b8;
+            font-weight: 700;
+        }
+        .chip-remove:hover {
+            color: var(--danger);
         }
 
         /* Card Grid Layout */
         .programs-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-            gap: 24px;
+            gap: 22px;
         }
         .program-card {
             background: var(--bg-card);
@@ -252,7 +408,6 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
-            box-sizing: border-box;
             position: relative;
         }
         .program-card:hover {
@@ -261,9 +416,10 @@
             border-color: #cbd5e1;
         }
         .program-card.urgent-border {
-            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3), 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
+        /* Program Status & Tags */
         .program-status-select {
             width: 100%;
             padding: 6px 10px;
@@ -274,21 +430,110 @@
             outline: none;
             transition: all 0.2s;
         }
-        .program-info-pill {
-            background: #f8fafc;
-            border: 1px solid #f1f5f9;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.85em;
+        .discipline-pill-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.74em;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            margin-right: 4px;
+            margin-bottom: 4px;
         }
-        .faculty-match-tag {
-            background: #eef2ff;
-            color: #4338ca;
-            border: 1px solid #c7d2fe;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.76em;
+        .disc-neuro { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
+        .disc-bme { background: #ccfbf1; color: #0f766e; border: 1px solid #99f6e4; }
+        .disc-bioe { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .disc-ece { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        .disc-psych { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .disc-compbio { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .disc-biosci { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+        .disc-ai { background: #fae8ff; color: #86198f; border: 1px solid #f5d0fe; }
+
+        /* International Fee Waiver Highlight Callouts */
+        .waiver-callout-card {
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            font-size: 0.84em;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+        }
+        .waiver-callout-card.gold {
+            background: #fffbeb;
+            border: 1.5px solid #fde047;
+            color: #854d0e;
+            box-shadow: 0 0 10px rgba(250, 204, 21, 0.15);
+        }
+        .waiver-callout-card.green {
+            background: #f0fdf4;
+            border: 1.5px solid #86efac;
+            color: #14532d;
+        }
+        .waiver-callout-card.blue {
+            background: #eff6ff;
+            border: 1.5px solid #93c5fd;
+            color: #1e3a8a;
+        }
+        .waiver-badge-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 0.88em;
+        }
+        .waiver-event-title {
+            font-size: 0.85em;
+            line-height: 1.4;
+            color: #451a03;
+        }
+        .waiver-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.82em;
+            text-decoration: none;
+            width: fit-content;
+            transition: all 0.2s;
+        }
+        .waiver-btn.gold {
+            background: #eab308;
+            color: #ffffff;
+            box-shadow: 0 1px 3px rgba(234, 179, 8, 0.3);
+        }
+        .waiver-btn.gold:hover {
+            background: #ca8a04;
+            transform: translateY(-1px);
+        }
+        .waiver-btn.blue {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .waiver-btn.blue:hover {
+            background: #1d4ed8;
+        }
+
+        .source-link-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-size: 0.78em;
             font-weight: 600;
+            text-decoration: none;
+            margin-top: 4px;
+        }
+        .source-link-badge:hover {
+            background: #bae6fd;
+            color: #0284c7;
         }
 
         /* Table View */
@@ -302,7 +547,7 @@
         .programs-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.9em;
+            font-size: 0.88em;
             text-align: left;
         }
         .programs-table th {
@@ -311,12 +556,20 @@
             padding: 12px 14px;
             font-weight: 700;
             color: var(--text-muted);
-            font-size: 0.8em;
+            font-size: 0.78em;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             position: sticky;
             top: 0;
             z-index: 10;
+        }
+        .programs-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+        .programs-table tr:hover td {
+            background: #f8fafc;
         }
 
         /* Modal Overlay & Card */
@@ -335,23 +588,22 @@
         }
         .modal {
             background: var(--bg-card);
-            padding: 30px;
+            padding: 28px;
             border-radius: 20px;
-            width: 680px;
+            width: 720px;
             max-width: 92%;
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-            box-sizing: border-box;
         }
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
         .form-group label {
             display: block;
             font-weight: 600;
-            margin-bottom: 6px;
-            font-size: 0.85em;
+            margin-bottom: 5px;
+            font-size: 0.84em;
             color: var(--text-muted);
         }
         .form-group input, .form-group textarea, .form-group select {
@@ -359,9 +611,8 @@
             padding: 9px 12px;
             border: 1px solid var(--border);
             border-radius: 8px;
-            box-sizing: border-box;
             font-family: inherit;
-            font-size: 0.92rem;
+            font-size: 0.9em;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
         .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
@@ -373,8 +624,8 @@
             display: flex;
             justify-content: flex-end;
             gap: 10px;
-            margin-top: 24px;
-            padding-top: 16px;
+            margin-top: 20px;
+            padding-top: 14px;
             border-top: 1px solid var(--border);
         }
 
@@ -395,40 +646,163 @@
             </h1>
         </div>
         <div class="navbar-actions">
-            <a id="link-advisors" href="index.html" class="btn btn-outline" style="text-decoration:none;">👨‍🏫 Advisors / PIs</a>
+            <a id="link-advisors" href="NeuroAI_Database.html" class="btn btn-outline" style="text-decoration:none;">👨‍🏫 Advisors / PIs</a>
             <button class="btn btn-outline" onclick="openInstitutionModal()">🏛️ Institutions</button>
             <button class="btn btn-accent" onclick="exportProgramsCSV()">📥 Export CSV</button>
             <button class="btn btn-primary" onclick="openProgramModal()">➕ Add Program</button>
         </div>
     </nav>
 
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Metrics & Nearest Deadline Banner -->
-        <div class="metrics-banner">
-            <div class="metric-header">
-                <span id="metric-total-count" class="metric-count-badge">0 Programs</span>
-                <div id="metric-deadline-alert"></div>
+    <!-- Two-Column App Layout -->
+    <div class="app-container">
+        <!-- Left Filter Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">
+                    <span>⚡ Filter Programs</span>
+                </div>
+                <button class="sidebar-reset-btn" onclick="resetAllFilters()">Reset All</button>
             </div>
-            <div id="metric-pipeline-counts" style="display:flex; flex-wrap:wrap; align-items:center;"></div>
-        </div>
 
-        <!-- Search & Filter Toolbar -->
-        <div class="toolbar">
-            <div class="search-bar-wrap">
-                <input type="text" id="search-program-input" placeholder="🔍 Search program name, department, university, target faculty, or notes...">
+            <!-- Section 1: International Fee Waiver (Crucial) -->
+            <div class="filter-section">
+                <div class="filter-section-title">
+                    <span>🌍 International Fee Waivers</span>
+                </div>
+                <div class="filter-pill active" id="waiver-pill-all" onclick="selectWaiverFilter('')">
+                    <span>⚡ All Programs</span>
+                    <span class="filter-pill-count" id="count-waiver-all">0</span>
+                </div>
+                <div class="filter-pill green" id="waiver-pill-free" onclick="selectWaiverFilter('Free for All ($0 Fee)')">
+                    <span>🎁 $0 Free for All Applicants</span>
+                    <span class="filter-pill-count" id="count-waiver-free">0</span>
+                </div>
+                <div class="filter-pill gold" id="waiver-pill-session" onclick="selectWaiverFilter('Virtual Info Session Free Code (Intl Eligible)')">
+                    <span>🎟️ Virtual Info Session Free Code</span>
+                    <span class="filter-pill-count" id="count-waiver-session">0</span>
+                </div>
+                <div class="filter-pill" id="waiver-pill-hardship" onclick="selectWaiverFilter('Financial Hardship Waiver (Intl Eligible)')">
+                    <span>🤝 Financial Hardship (Intl Eligible)</span>
+                    <span class="filter-pill-count" id="count-waiver-hardship">0</span>
+                </div>
+                <div class="filter-pill" id="waiver-pill-paid" onclick="selectWaiverFilter('Standard Paid (Domestic Waivers Only)')">
+                    <span>💵 Standard Paid (Domestic Only)</span>
+                    <span class="filter-pill-count" id="count-waiver-paid">0</span>
+                </div>
             </div>
-            <div class="filters-wrap">
-                <select id="filter-degree" class="filter-select">
-                    <option value="">All Degrees</option>
-                    <option value="PhD">PhD</option>
-                    <option value="Direct PhD">Direct PhD</option>
-                    <option value="Master's">Master's</option>
-                    <option value="Postdoc">Postdoc</option>
-                    <option value="Fellowship">Fellowship</option>
+
+            <!-- Section 2: Academic Disciplines -->
+            <div class="filter-section">
+                <div class="filter-section-title">
+                    <span>🔬 Academic Disciplines</span>
+                </div>
+                <div class="filter-pill active" id="disc-pill-all" onclick="selectDisciplineFilter('')">
+                    <span>🔬 All Disciplines</span>
+                    <span class="filter-pill-count" id="count-disc-all">0</span>
+                </div>
+                <div class="filter-pill" id="disc-pill-neuro" onclick="selectDisciplineFilter('Neuroscience')">
+                    <span>🧠 Neuroscience</span>
+                    <span class="filter-pill-count" id="count-disc-neuro">0</span>
+                </div>
+                <div class="filter-pill" id="disc-pill-bme" onclick="selectDisciplineFilter('Biomedical Engineering (BME)')">
+                    <span>🧬 Biomedical Engineering (BME)</span>
+                    <span class="filter-pill-count" id="count-disc-bme">0</span>
+                </div>
+                <div class="filter-pill" id="disc-pill-bioe" onclick="selectDisciplineFilter('Bioengineering')">
+                    <span>🔬 Bioengineering</span>
+                    <span class="filter-pill-count" id="count-disc-bioe">0</span>
+                </div>
+                <div class="filter-pill" id="disc-pill-ece" onclick="selectDisciplineFilter('Electrical & Computer Engineering (ECE)')">
+                    <span>⚡ Electrical & Comp Eng (ECE)</span>
+                    <span class="filter-pill-count" id="count-disc-ece">0</span>
+                </div>
+                <div class="filter-pill" id="disc-pill-psych" onclick="selectDisciplineFilter('Psychology & Cognitive Science')">
+                    <span>🧩 Psychology & CogSci</span>
+                    <span class="filter-pill-count" id="count-disc-psych">0</span>
+                </div>
+                <div class="filter-pill" id="disc-pill-compbio" onclick="selectDisciplineFilter('Computational Biology & Bioinformatics')">
+                    <span>💻 Comp Bio & Bioinformatics</span>
+                    <span class="filter-pill-count" id="count-disc-compbio">0</span>
+                </div>
+                <div class="filter-pill" id="disc-pill-biosci" onclick="selectDisciplineFilter('Biological Sciences')">
+                    <span>🧫 Biological Sciences</span>
+                    <span class="filter-pill-count" id="count-disc-biosci">0</span>
+                </div>
+                <div class="filter-pill" id="disc-pill-ai" onclick="selectDisciplineFilter('Machine Learning / AI')">
+                    <span>🤖 Machine Learning / AI</span>
+                    <span class="filter-pill-count" id="count-disc-ai">0</span>
+                </div>
+            </div>
+
+            <!-- Section 3: Degree & Eligibility -->
+            <div class="filter-section">
+                <div class="filter-section-title">
+                    <span>🎓 Degree & Master's Prerequisite</span>
+                </div>
+                <select id="filter-master-req" class="filter-dropdown" onchange="renderPrograms()">
+                    <option value="">All Prerequisites</option>
+                    <option value="direct_bachelor">🟢 Bachelor's Eligible (Direct PhD)</option>
+                    <option value="master_required">🔴 Master's Degree Required</option>
                 </select>
+            </div>
 
-                <select id="filter-status" class="filter-select">
+            <!-- Section 4: Language Requirements (DET vs TOEFL) -->
+            <div class="filter-section">
+                <div class="filter-section-title">
+                    <span>🦉 English Language Test</span>
+                </div>
+                <select id="filter-language-type" class="filter-dropdown" onchange="renderPrograms()">
+                    <option value="">All Language Requirements</option>
+                    <option value="det_accepted">🦉 Duolingo (DET) Accepted</option>
+                    <option value="toefl_only">🌐 TOEFL / IELTS Only (No DET)</option>
+                </select>
+            </div>
+
+            <!-- Section 5: Letters of Rec -->
+            <div class="filter-section">
+                <div class="filter-section-title">
+                    <span>✉️ Letters of Recommendation</span>
+                </div>
+                <select id="filter-letters-count" class="filter-dropdown" onchange="renderPrograms()">
+                    <option value="">All Letter Requirements</option>
+                    <option value="2_letters">2 Letters Required</option>
+                    <option value="3_letters">3 Letters Required</option>
+                </select>
+            </div>
+
+            <!-- Section 6: Deadlines -->
+            <div class="filter-section">
+                <div class="filter-section-title">
+                    <span>⏰ Application Deadlines</span>
+                </div>
+                <select id="filter-deadline" class="filter-dropdown" onchange="renderPrograms()">
+                    <option value="">All Deadlines</option>
+                    <option value="upcoming_30">⚡ Next 30 Days</option>
+                    <option value="upcoming_60">📅 Next 60 Days</option>
+                    <option value="dec_1">🎯 Dec 1 Deadlines</option>
+                    <option value="dec_15">🎯 Dec 15 Deadlines</option>
+                    <option value="jan">🎯 Jan 1 - Jan 15 Deadlines</option>
+                    <option value="future">🔮 Future (> 60 Days)</option>
+                    <option value="passed">📁 Passed Deadlines</option>
+                </select>
+            </div>
+
+            <!-- Section 7: Country / Region -->
+            <div class="filter-section">
+                <div class="filter-section-title">
+                    <span>🏛️ Country / Region</span>
+                </div>
+                <select id="filter-country" class="filter-dropdown" onchange="renderPrograms()">
+                    <option value="">All Countries</option>
+                </select>
+            </div>
+
+            <!-- Section 8: Application Status -->
+            <div class="filter-section">
+                <div class="filter-section-title">
+                    <span>📊 Application Pipeline Stage</span>
+                </div>
+                <select id="filter-status" class="filter-dropdown" onchange="renderPrograms()">
                     <option value="">All Stages</option>
                     <option value="Considering">💡 Considering</option>
                     <option value="Preparing Materials">📝 Preparing Materials</option>
@@ -438,61 +812,72 @@
                     <option value="Waitlisted">⏳ Waitlisted</option>
                     <option value="Rejected">❌ Rejected</option>
                 </select>
+            </div>
+        </aside>
 
-                <select id="filter-country" class="filter-select">
-                    <option value="">All Countries</option>
-                </select>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Metrics & Nearest Deadline Banner -->
+            <div class="metrics-banner">
+                <div class="metric-header">
+                    <span id="metric-total-count" class="metric-count-badge">0 Programs</span>
+                    <div id="metric-deadline-alert"></div>
+                </div>
+                <div id="metric-pipeline-counts" style="display:flex; flex-wrap:wrap; align-items:center;"></div>
+            </div>
 
-                <select id="filter-deadline" class="filter-select">
-                    <option value="">All Deadlines</option>
-                    <option value="upcoming_30">⏰ Next 30 Days</option>
-                    <option value="upcoming_60">📅 Next 60 Days</option>
-                    <option value="future">🔮 Future (> 60 Days)</option>
-                    <option value="passed">📁 Passed Deadlines</option>
-                </select>
+            <!-- Search & Quick Sort Toolbar -->
+            <div class="toolbar">
+                <div class="search-bar-wrap">
+                    <input type="text" id="search-program-input" placeholder="🔍 Search program name, department, university, faculty, waiver event...">
+                </div>
+                <div class="toolbar-actions">
+                    <select id="sort-programs" class="filter-dropdown" style="width: auto;" onchange="renderPrograms()">
+                        <option value="deadline_asc">⏳ Deadline (Soonest first)</option>
+                        <option value="deadline_desc">⏳ Deadline (Latest first)</option>
+                        <option value="waiver_priority">🎟️ Free / Waiver First</option>
+                        <option value="uni_asc">🏛️ University (A-Z)</option>
+                        <option value="name_asc">🎓 Program Name (A-Z)</option>
+                        <option value="status">📊 Status / Stage</option>
+                    </select>
 
-                <select id="sort-programs" class="filter-select">
-                    <option value="deadline_asc">⏳ Deadline (Soonest first)</option>
-                    <option value="deadline_desc">⏳ Deadline (Latest first)</option>
-                    <option value="uni_asc">🏛️ University (A-Z)</option>
-                    <option value="name_asc">🎓 Program Name (A-Z)</option>
-                    <option value="status">📊 Status / Stage</option>
-                </select>
-
-                <div style="display: flex; gap: 4px; border-left: 1px solid var(--border); padding-left: 10px;">
-                    <button id="view-cards-btn" class="btn btn-primary" onclick="setViewMode('cards')" title="Card Grid View" style="padding: 7px 11px;">🔲</button>
-                    <button id="view-table-btn" class="btn btn-action" onclick="setViewMode('table')" title="Spreadsheet Table View" style="padding: 7px 11px;">📋</button>
+                    <div style="display: flex; gap: 4px; border-left: 1px solid var(--border); padding-left: 10px;">
+                        <button id="view-cards-btn" class="btn btn-primary" onclick="setViewMode('cards')" title="Card Grid View" style="padding: 7px 11px;">🔲</button>
+                        <button id="view-table-btn" class="btn btn-action" onclick="setViewMode('table')" title="Spreadsheet Table View" style="padding: 7px 11px;">📋</button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Results Counter -->
-        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85em; color:var(--text-muted); font-weight:600; padding: 0 4px;">
-            <span id="programs-count-badge">Loading programs...</span>
-        </div>
+            <!-- Active Chips Bar & Counter -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div class="active-chips-bar" id="active-chips-container"></div>
+                <span id="programs-count-badge" style="font-size:0.85em; color:var(--text-muted); font-weight:600; white-space:nowrap;">Loading programs...</span>
+            </div>
 
-        <!-- Cards View Container -->
-        <div id="programs-cards-container" class="programs-grid"></div>
+            <!-- Cards View Container -->
+            <div id="programs-cards-container" class="programs-grid"></div>
 
-        <!-- Table View Container -->
-        <div id="programs-table-container" class="programs-table-container" style="display:none;">
-            <table class="programs-table">
-                <thead>
-                    <tr>
-                        <th style="width: 170px;">University</th>
-                        <th style="width: 200px;">Program & Degree</th>
-                        <th style="width: 160px;">Department</th>
-                        <th style="width: 140px;">Status</th>
-                        <th style="width: 130px;">Deadline</th>
-                        <th style="width: 170px;">Language (TOEFL/DET)</th>
-                        <th style="width: 170px;">Requirements & Waiver</th>
-                        <th>Faculty & Stats</th>
-                        <th style="width: 120px; text-align: right;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="programs-table-body"></tbody>
-            </table>
-        </div>
+            <!-- Table View Container -->
+            <div id="programs-table-container" class="programs-table-container" style="display:none;">
+                <table class="programs-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 170px;">University</th>
+                            <th style="width: 220px;">Program & Discipline</th>
+                            <th style="width: 150px;">Department</th>
+                            <th style="width: 130px;">Status</th>
+                            <th style="width: 130px;">Deadline</th>
+                            <th style="width: 200px;">International Fee Waiver & Event</th>
+                            <th style="width: 160px;">Language (TOEFL/DET)</th>
+                            <th style="width: 140px;">Degree & Recs</th>
+                            <th>Faculty & Admissions</th>
+                            <th style="width: 100px; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="programs-table-body"></tbody>
+                </table>
+            </div>
+        </main>
     </div>
 
     <!-- Add / Edit Program Modal -->
@@ -502,7 +887,7 @@
             <input type="hidden" id="prog-id">
 
             <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                     <label style="margin-bottom:0;">University / Institution (Required) *</label>
                     <button type="button" onclick="openInstitutionModal()" style="background:none; border:none; color:var(--primary); font-size:0.82em; font-weight:600; cursor:pointer;" title="Add new university if not in list">➕ New Institution</button>
                 </div>
@@ -512,7 +897,7 @@
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px;">
                 <div class="form-group">
                     <label>Program Name (Required) *</label>
-                    <input type="text" id="prog-name" placeholder="e.g. Computer Science PhD" required>
+                    <input type="text" id="prog-name" placeholder="e.g. Neuroscience PhD Program" required>
                 </div>
                 <div class="form-group">
                     <label>Degree Type</label>
@@ -526,9 +911,41 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Department / School</label>
-                <input type="text" id="prog-department" placeholder="e.g. Department of Computer Science & Artificial Intelligence">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                    <label>Department / School</label>
+                    <input type="text" id="prog-department" placeholder="e.g. Department of Biomedical Engineering">
+                </div>
+                <div class="form-group">
+                    <label>Discipline Tags (comma-separated)</label>
+                    <input type="text" id="prog-discipline" placeholder="e.g. Neuroscience, Biomedical Engineering (BME)">
+                </div>
+            </div>
+
+            <!-- International Fee Waiver Section -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+                <div style="font-weight: 700; font-size: 0.88em; color: #1e293b; margin-bottom: 10px; display:flex; align-items:center; gap:6px;">
+                    <span>🌍 International Fee Waiver Configuration</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px;">
+                    <div>
+                        <label style="font-size: 0.8em; font-weight:600; color: #64748b;">International Waiver Type</label>
+                        <select id="prog-waiver-type" style="width:100%; padding:7px 10px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.86em;">
+                            <option value="Standard Paid (Domestic Waivers Only)">Standard Paid (Domestic Waivers Only)</option>
+                            <option value="Free for All ($0 Fee)">Free for All ($0 Fee worldwide)</option>
+                            <option value="Virtual Info Session Free Code (Intl Eligible)">Virtual Info Session Free Code (Intl Eligible)</option>
+                            <option value="Financial Hardship Waiver (Intl Eligible)">Financial Hardship Waiver (Intl Eligible)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8em; font-weight:600; color: #64748b;">Info Session Event / Timeline</label>
+                        <input type="text" id="prog-waiver-event" placeholder="e.g. Engineering Virtual Showcase (Oct 2025)" style="width:100%; padding:7px 10px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.86em;">
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 0.8em; font-weight:600; color: #64748b;">Info Session Registration / Waiver Link</label>
+                    <input type="url" id="prog-waiver-link" placeholder="https://engineering.purdue.edu/showcase" style="width:100%; padding:7px 10px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.86em;">
+                </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
@@ -538,7 +955,7 @@
                 </div>
                 <div class="form-group">
                     <label>Application Fee</label>
-                    <input type="text" id="prog-fee" placeholder="e.g. $90 or Waived">
+                    <input type="text" id="prog-fee" placeholder="e.g. $90 or Free">
                 </div>
                 <div class="form-group">
                     <label>Letters of Rec</label>
@@ -549,7 +966,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
                 <div class="form-group">
                     <label>Language Requirements (TOEFL / DET & Subscores)</label>
-                    <input type="text" id="prog-toefl-det" placeholder="e.g. TOEFL 100+ (R22, L22, S22, W22); DET 130+">
+                    <input type="text" id="prog-toefl-det" placeholder="e.g. TOEFL 100+ (S26+); DET Accepted (125+)">
                 </div>
                 <div class="form-group">
                     <label>Master's Degree Required?</label>
@@ -563,28 +980,12 @@
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
                 <div class="form-group">
-                    <label>Fee Waiver Info Session & Link</label>
-                    <input type="text" id="prog-fee-waiver" placeholder="e.g. Attend Virtual Info Session for $100 waiver: https://...">
+                    <label>General Fee Waiver Notes</label>
+                    <input type="text" id="prog-fee-waiver" placeholder="e.g. Request waiver inside portal by Nov 15">
                 </div>
                 <div class="form-group">
-                    <label>Past International Student Stats (if found)</label>
-                    <input type="text" id="prog-intl-stats" placeholder="e.g. ~35% international; funding fully covered">
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-                <div class="form-group">
-                    <label>GRE Requirement</label>
-                    <select id="prog-gre">
-                        <option value="Not Required">Not Required</option>
-                        <option value="Optional">Optional</option>
-                        <option value="Required">Required</option>
-                        <option value="Not Accepted">Not Accepted</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>General English / IELTS (Optional fallback)</label>
-                    <input type="text" id="prog-english" placeholder="e.g. IELTS 7.5">
+                    <label>Past International Student Stats (with Source)</label>
+                    <input type="text" id="prog-intl-stats" placeholder="e.g. Cohort size ~20, ~35% international. Source: https://...">
                 </div>
             </div>
 
@@ -608,7 +1009,7 @@
             </div>
 
             <div class="form-group">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                     <label style="margin-bottom:0;">Target Faculty / Matched Advisors</label>
                     <button type="button" onclick="suggestPIsForModal()" style="background:none; border:none; color:var(--primary); font-size:0.82em; font-weight:600; cursor:pointer;" title="Suggest PIs from selected school">🔍 Suggest from School</button>
                 </div>
@@ -617,7 +1018,7 @@
 
             <div class="form-group">
                 <label>Notes & Application Strategy</label>
-                <textarea id="prog-notes" rows="3" placeholder="Notes on SOP focus, funding packages, potential lab rotations, interview dates, etc."></textarea>
+                <textarea id="prog-notes" rows="3" placeholder="Notes on SOP focus, funding packages, rotation labs, interview timelines, etc."></textarea>
             </div>
 
             <div class="modal-actions">
@@ -627,9 +1028,9 @@
         </div>
     </div>
 
-    <!-- Institution Management Modal (Reused) -->
+    <!-- Institution Management Modal -->
     <div class="modal-overlay" id="institution-modal" style="display:none;">
-        <div class="modal" style="width: 880px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 28px; box-sizing: border-box;">
+        <div class="modal" style="width: 880px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 28px;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
                 <div>
                     <h2 style="margin: 0 0 4px 0; font-size: 1.4em; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
@@ -655,11 +1056,11 @@
                 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 12px;">
                     <div>
                         <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Institution / University Name *</label>
-                        <input type="text" id="uni-form-name" placeholder="e.g. Carnegie Mellon University" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                        <input type="text" id="uni-form-name" placeholder="e.g. Carnegie Mellon University" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em;">
                     </div>
                     <div>
                         <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Country / Region</label>
-                        <input type="text" id="uni-form-country" placeholder="e.g. USA, UK, Switzerland" list="countries-list" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                        <input type="text" id="uni-form-country" placeholder="e.g. USA, UK, Switzerland" list="countries-list" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em;">
                         <datalist id="countries-list">
                             <option value="USA">
                             <option value="UK">
@@ -683,19 +1084,15 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 14px;">
                     <div>
                         <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Latitude</label>
-                        <input type="number" step="any" id="uni-form-lat" placeholder="e.g. 40.4433" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                        <input type="number" step="any" id="uni-form-lat" placeholder="e.g. 40.4433" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em;">
                     </div>
                     <div>
                         <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Longitude</label>
-                        <input type="number" step="any" id="uni-form-lon" placeholder="e.g. -79.9436" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                        <input type="number" step="any" id="uni-form-lon" placeholder="e.g. -79.9436" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em;">
                     </div>
                     <div>
                         <button type="button" id="uni-detect-coord-btn" class="btn btn-action" onclick="autoDetectCoordinates()" style="height: 38px; white-space: nowrap; font-size: 0.82em; padding: 0 12px;" title="Look up coordinates via OpenStreetMap Nominatim">🌐 Auto-Detect</button>
                     </div>
-                </div>
-                
-                <div id="uni-sync-notice" style="display: none; background: #fef3c7; border: 1px solid #fde68a; color: #92400e; padding: 8px 12px; border-radius: 6px; font-size: 0.82em; margin-bottom: 12px;">
-                    ℹ️ Saving changes will automatically synchronize the university name and map coordinates for affiliated researchers.
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 8px;">

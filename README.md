@@ -61,13 +61,18 @@ Applying for PhD or postdoctoral positions across academia (**Robotics, Quantum 
 
 ### 5. 🎓 Graduate Program & Admissions Intelligence Tracker (学位项目与申请全景管理)
 - **Dedicated Program Workspace (`programs.html`)**: Track graduate degree programs (PhD, Master's, Postdoc, Fellowship) organized by institution, department, and deadline. Built-in clean architecture and reserved database schema for future Master's and dual-degree programs.
+- **Responsive Multi-Dimensional Filter Sidebar**: Includes live-count filter pills matching the CRM experience across:
+  - 🌍 **International Fee Waivers**: Filter by 100% Free Applications ($0 Fee), Virtual Info Session Free Waiver Codes, Financial Hardship Waivers, or Standard Paid.
+  - 🔬 **Academic Disciplines**: Filter pills for Neuroscience, Biomedical Engineering (BME), Bioengineering, Electrical & Computer Engineering (ECE), Psychology & Cognitive Science, Computational Biology, Biological Sciences, and Machine Learning / AI.
+  - 🎓 **Degree & Prerequisites**: Bachelor's Eligible (Direct PhD) vs. Master's Required.
+  - 🦉 **Language Tests**: Duolingo (DET) Accepted vs. TOEFL/IELTS Only.
+  - ✉️ **Letters of Recommendation**: 2 Letters vs. 3 Letters.
+  - ⏰ **Deadlines**: Next 30 Days, Next 60 Days, Dec 1 / Dec 15 / Jan cutoffs, Future, or Passed.
+- **Dedicated International Fee Waiver Callouts**:
+  - 🎟️ **Virtual Info Session Free Codes**: Standout glowing gold card displaying exact virtual showcase/webinar names, timelines (e.g. October–November), and direct registration buttons.
+  - 🎁 **100% Free Applications**: Standout green badge for programs charging $0 application fees worldwide.
+- **Verified Official Source Links**: International student admission statistics and cohort funding guarantees now include direct clickable `[Official Source ↗]` links.
 - **Deadline Radar & Countdown Alert**: Dynamic deadline tracker with urgent visual alerts for milestones within 7 and 30 days, plus indicators for upcoming vs. passed deadlines.
-- **Comprehensive Admissions Requirements**:
-  - **Language Thresholds & Subscores**: Detailed tracking for TOEFL iBT and Duolingo English Test (DET) with specific subscore cutoffs (e.g. speaking minimums).
-  - **Prerequisite Degree Verification**: Explicitly tracks whether a Master's degree is required or whether applicants are eligible for direct admission with a Bachelor's.
-  - **Letters of Recommendation**: Displays exact number of required recommendation letters (e.g. 2 or 3 letters).
-  - **Application Fee & Fee Waiver Info Sessions**: Highlights application fees alongside clickable links to virtual info sessions and diversity waiver programs offering free application codes.
-  - **Past International Student Admission Stats**: Records cohort sizes, international student acceptance rates, and 5-year full stipend/fellowship guarantees.
 - **Dual Visual Modes**: Switch seamlessly between responsive **Card Grid View** (with quick 1-click status changers) and dense **Spreadsheet Table View**.
 - **Advisor Cross-Linking**: Automatically counts affiliated faculty from your database for each institution, displays matched target advisors, and provides 1-click navigation to view professor profiles.
 - **1-Click CSV Data Export**: Export all tracked programs with all admissions metrics to standard `.csv` for offline backup or sharing.

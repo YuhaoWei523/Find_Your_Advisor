@@ -1,5 +1,6 @@
 // ==========================================
 // Find Your Advisor - Academic Programs Management
+// Enhanced with Multi-Dimensional Filters & International Fee Waiver Callouts
 // ==========================================
 
 const API_BASE = (window.location.protocol.startsWith('http')) 
@@ -9,6 +10,10 @@ const API_BASE = (window.location.protocol.startsWith('http'))
 let allPrograms = [];
 let allUniversities = [];
 let currentViewMode = 'cards'; // 'cards' | 'table'
+
+// Active Filter State
+let selectedWaiver = '';
+let selectedDiscipline = '';
 
 // Status definitions and color themes
 const STATUS_CONFIG = {
@@ -40,6 +45,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchParam = urlParams.get('search');
     const degreeParam = urlParams.get('degree');
     const statusParam = urlParams.get('status');
+    const waiverParam = urlParams.get('waiver');
+    const discParam = urlParams.get('discipline');
 
     if (uniParam) {
         const searchInput = document.getElementById('search-program-input');
@@ -48,16 +55,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const searchInput = document.getElementById('search-program-input');
         if (searchInput) searchInput.value = searchParam;
     }
-    if (degreeParam) {
-        const degEl = document.getElementById('filter-degree');
-        if (degEl) degEl.value = degreeParam;
-    }
     if (statusParam) {
         const statEl = document.getElementById('filter-status');
         if (statEl) statEl.value = statusParam;
     }
+    if (waiverParam) {
+        selectWaiverFilter(waiverParam);
+    }
+    if (discParam) {
+        selectDisciplineFilter(discParam);
+    }
 
-    if (uniParam || searchParam || degreeParam || statusParam) {
+    if (uniParam || searchParam || statusParam || waiverParam || discParam) {
         renderPrograms();
     }
 });
@@ -68,7 +77,7 @@ function setupEventListeners() {
         searchInput.addEventListener('input', () => renderPrograms());
     }
 
-    ['filter-degree', 'filter-status', 'filter-country', 'filter-deadline', 'sort-programs'].forEach(id => {
+    ['filter-master-req', 'filter-language-type', 'filter-letters-count', 'filter-deadline', 'filter-country', 'filter-status', 'sort-programs'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => renderPrograms());
     });
@@ -81,7 +90,6 @@ async function loadUniversities() {
         if (!res.ok) throw new Error("Failed to load universities");
         allUniversities = await res.json();
         
-        // Populate university dropdowns
         populateUniversityOptions();
         populateCountryFilter();
     } catch (err) {
@@ -93,19 +101,21 @@ async function loadPrograms() {
     const cardsContainer = document.getElementById('programs-cards-container');
     const tableBody = document.getElementById('programs-table-body');
     if (cardsContainer) cardsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#64748b;">⏳ Loading programs...</div>';
-    if (tableBody) tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 40px; color:#64748b;">⏳ Loading programs...</td></tr>';
+    if (tableBody) tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 40px; color:#64748b;">⏳ Loading programs...</td></tr>';
 
     try {
         const res = await fetch(`${API_BASE}/programs`);
         if (!res.ok) throw new Error("Failed to load programs");
         allPrograms = await res.json();
+        
         updateMetricsBanner();
+        updateSidebarFilterCounts();
         renderPrograms();
     } catch (err) {
         console.error("Error loading programs:", err);
         const errMsg = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#ef4444;">Error loading programs: ${err.message}</div>`;
         if (cardsContainer) cardsContainer.innerHTML = errMsg;
-        if (tableBody) tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 40px; color:#ef4444;">Error loading programs: ${err.message}</td></tr>`;
+        if (tableBody) tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 40px; color:#ef4444;">Error loading programs: ${err.message}</td></tr>`;
     }
 }
 
@@ -115,7 +125,6 @@ function populateUniversityOptions() {
     const currentVal = select.value;
     select.innerHTML = '<option value="">-- Select University / Institution * --</option>';
     
-    // Sort universities alphabetically
     const sorted = [...allUniversities].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     sorted.forEach(u => {
         const opt = document.createElement('option');
@@ -141,6 +150,104 @@ function populateCountryFilter() {
     });
 }
 
+// --- Sidebar Filter Selection Handlers ---
+function selectWaiverFilter(waiverType) {
+    selectedWaiver = waiverType;
+    
+    // Update pill styles
+    document.querySelectorAll('[id^="waiver-pill-"]').forEach(el => el.classList.remove('active'));
+    if (!waiverType) {
+        document.getElementById('waiver-pill-all')?.classList.add('active');
+    } else if (waiverType.includes('Free for All')) {
+        document.getElementById('waiver-pill-free')?.classList.add('active');
+    } else if (waiverType.includes('Virtual Info Session')) {
+        document.getElementById('waiver-pill-session')?.classList.add('active');
+    } else if (waiverType.includes('Financial Hardship')) {
+        document.getElementById('waiver-pill-hardship')?.classList.add('active');
+    } else if (waiverType.includes('Standard Paid')) {
+        document.getElementById('waiver-pill-paid')?.classList.add('active');
+    }
+    
+    renderPrograms();
+}
+
+function selectDisciplineFilter(disc) {
+    selectedDiscipline = disc;
+    
+    document.querySelectorAll('[id^="disc-pill-"]').forEach(el => el.classList.remove('active'));
+    if (!disc) {
+        document.getElementById('disc-pill-all')?.classList.add('active');
+    } else if (disc.includes('Neuro')) {
+        document.getElementById('disc-pill-neuro')?.classList.add('active');
+    } else if (disc.includes('BME') || disc.includes('Biomedical')) {
+        document.getElementById('disc-pill-bme')?.classList.add('active');
+    } else if (disc.includes('Bioengineering')) {
+        document.getElementById('disc-pill-bioe')?.classList.add('active');
+    } else if (disc.includes('ECE') || disc.includes('Electrical')) {
+        document.getElementById('disc-pill-ece')?.classList.add('active');
+    } else if (disc.includes('Psych') || disc.includes('Cognitive')) {
+        document.getElementById('disc-pill-psych')?.classList.add('active');
+    } else if (disc.includes('Comp') || disc.includes('Bioinformatics')) {
+        document.getElementById('disc-pill-compbio')?.classList.add('active');
+    } else if (disc.includes('Biological')) {
+        document.getElementById('disc-pill-biosci')?.classList.add('active');
+    } else if (disc.includes('Machine Learning') || disc.includes('AI')) {
+        document.getElementById('disc-pill-ai')?.classList.add('active');
+    }
+    
+    renderPrograms();
+}
+
+function resetAllFilters() {
+    selectedWaiver = '';
+    selectedDiscipline = '';
+
+    document.querySelectorAll('[id^="waiver-pill-"]').forEach(el => el.classList.remove('active'));
+    document.getElementById('waiver-pill-all')?.classList.add('active');
+
+    document.querySelectorAll('[id^="disc-pill-"]').forEach(el => el.classList.remove('active'));
+    document.getElementById('disc-pill-all')?.classList.add('active');
+
+    const searchInput = document.getElementById('search-program-input');
+    if (searchInput) searchInput.value = '';
+
+    ['filter-master-req', 'filter-language-type', 'filter-letters-count', 'filter-deadline', 'filter-country', 'filter-status'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    const sortEl = document.getElementById('sort-programs');
+    if (sortEl) sortEl.value = 'deadline_asc';
+
+    renderPrograms();
+}
+
+// --- Live Sidebar Filter Counts ---
+function updateSidebarFilterCounts() {
+    const total = allPrograms.length;
+    
+    const setBadge = (id, count) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = count;
+    };
+
+    setBadge('count-waiver-all', total);
+    setBadge('count-waiver-free', allPrograms.filter(p => (p.intl_waiver_type || '').includes('Free for All')).length);
+    setBadge('count-waiver-session', allPrograms.filter(p => (p.intl_waiver_type || '').includes('Virtual Info Session')).length);
+    setBadge('count-waiver-hardship', allPrograms.filter(p => (p.intl_waiver_type || '').includes('Financial Hardship')).length);
+    setBadge('count-waiver-paid', allPrograms.filter(p => (p.intl_waiver_type || '').includes('Standard Paid')).length);
+
+    setBadge('count-disc-all', total);
+    setBadge('count-disc-neuro', allPrograms.filter(p => (p.discipline_tag || '').includes('Neuro')).length);
+    setBadge('count-disc-bme', allPrograms.filter(p => (p.discipline_tag || '').includes('Biomedical Engineering') || (p.discipline_tag || '').includes('BME')).length);
+    setBadge('count-disc-bioe', allPrograms.filter(p => (p.discipline_tag || '').includes('Bioengineering')).length);
+    setBadge('count-disc-ece', allPrograms.filter(p => (p.discipline_tag || '').includes('ECE') || (p.discipline_tag || '').includes('Electrical')).length);
+    setBadge('count-disc-psych', allPrograms.filter(p => (p.discipline_tag || '').includes('Psych') || (p.discipline_tag || '').includes('Cognitive')).length);
+    setBadge('count-disc-compbio', allPrograms.filter(p => (p.discipline_tag || '').includes('Comp') || (p.discipline_tag || '').includes('Bioinformatics')).length);
+    setBadge('count-disc-biosci', allPrograms.filter(p => (p.discipline_tag || '').includes('Biological Sciences')).length);
+    setBadge('count-disc-ai', allPrograms.filter(p => (p.discipline_tag || '').includes('Machine Learning') || (p.discipline_tag || '').includes('AI')).length);
+}
+
 // --- Metrics & Upcoming Deadline Banner ---
 function updateMetricsBanner() {
     const totalEl = document.getElementById('metric-total-count');
@@ -151,7 +258,6 @@ function updateMetricsBanner() {
         totalEl.innerText = `${allPrograms.length} Tracked Programs`;
     }
 
-    // Count by status
     const statusCounts = {};
     Object.keys(STATUS_CONFIG).forEach(k => statusCounts[k] = 0);
     allPrograms.forEach(p => {
@@ -169,7 +275,6 @@ function updateMetricsBanner() {
         `;
     }
 
-    // Find closest upcoming deadline
     if (deadlineAlertEl) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -205,10 +310,81 @@ function updateMetricsBanner() {
     }
 }
 
-// --- Filtering & Sorting ---
+// --- Active Filter Chips Rendering ---
+function renderActiveChips() {
+    const chipsContainer = document.getElementById('active-chips-container');
+    if (!chipsContainer) return;
+
+    const chips = [];
+
+    if (selectedWaiver) {
+        let label = 'Waiver: ' + selectedWaiver;
+        if (selectedWaiver.includes('Free for All')) label = '🎁 $0 Free Application';
+        else if (selectedWaiver.includes('Virtual Info Session')) label = '🎟️ Info Session Free Code';
+        else if (selectedWaiver.includes('Financial Hardship')) label = '🤝 Hardship Waiver';
+        else if (selectedWaiver.includes('Standard Paid')) label = '💵 Standard Paid';
+        chips.push({ label, onRemove: "selectWaiverFilter('')" });
+    }
+
+    if (selectedDiscipline) {
+        chips.push({ label: `🔬 ${selectedDiscipline}`, onRemove: "selectDisciplineFilter('')" });
+    }
+
+    const masterVal = document.getElementById('filter-master-req')?.value;
+    if (masterVal) {
+        const label = masterVal === 'direct_bachelor' ? "🟢 Direct Bachelor's Eligible" : "🔴 Master's Required";
+        chips.push({ label, onRemove: "document.getElementById('filter-master-req').value=''; renderPrograms();" });
+    }
+
+    const langVal = document.getElementById('filter-language-type')?.value;
+    if (langVal) {
+        const label = langVal === 'det_accepted' ? "🦉 Duolingo (DET) Accepted" : "🌐 TOEFL / IELTS Only";
+        chips.push({ label, onRemove: "document.getElementById('filter-language-type').value=''; renderPrograms();" });
+    }
+
+    const lettersVal = document.getElementById('filter-letters-count')?.value;
+    if (lettersVal) {
+        const label = lettersVal === '2_letters' ? "✉️ 2 Letters of Rec" : "✉️ 3 Letters of Rec";
+        chips.push({ label, onRemove: "document.getElementById('filter-letters-count').value=''; renderPrograms();" });
+    }
+
+    const deadlineVal = document.getElementById('filter-deadline')?.value;
+    if (deadlineVal) {
+        const dText = document.getElementById('filter-deadline')?.selectedOptions[0]?.text || deadlineVal;
+        chips.push({ label: dText, onRemove: "document.getElementById('filter-deadline').value=''; renderPrograms();" });
+    }
+
+    const countryVal = document.getElementById('filter-country')?.value;
+    if (countryVal) {
+        chips.push({ label: `🏛️ ${countryVal}`, onRemove: "document.getElementById('filter-country').value=''; renderPrograms();" });
+    }
+
+    const statusVal = document.getElementById('filter-status')?.value;
+    if (statusVal) {
+        chips.push({ label: `📊 ${statusVal}`, onRemove: "document.getElementById('filter-status').value=''; renderPrograms();" });
+    }
+
+    if (chips.length === 0) {
+        chipsContainer.innerHTML = '';
+        return;
+    }
+
+    chipsContainer.innerHTML = chips.map(c => `
+        <span class="chip">
+            <span>${escapeHtml(c.label)}</span>
+            <span class="chip-remove" onclick="${c.onRemove}">✕</span>
+        </span>
+    `).join('') + `
+        <button class="sidebar-reset-btn" onclick="resetAllFilters()" style="font-size:0.8em; margin-left:4px;">Clear All</button>
+    `;
+}
+
+// --- Filtering & Sorting Core Logic ---
 function getFilteredPrograms() {
     const searchVal = (document.getElementById('search-program-input')?.value || '').trim().toLowerCase();
-    const degreeVal = document.getElementById('filter-degree')?.value || '';
+    const masterReqVal = document.getElementById('filter-master-req')?.value || '';
+    const langTypeVal = document.getElementById('filter-language-type')?.value || '';
+    const lettersCountVal = document.getElementById('filter-letters-count')?.value || '';
     const statusVal = document.getElementById('filter-status')?.value || '';
     const countryVal = document.getElementById('filter-country')?.value || '';
     const deadlineVal = document.getElementById('filter-deadline')?.value || '';
@@ -218,20 +394,70 @@ function getFilteredPrograms() {
     today.setHours(0, 0, 0, 0);
 
     let filtered = allPrograms.filter(p => {
-        // Search filter
+        // Search filter across all fields
         if (searchVal) {
             const matchName = (p.name || '').toLowerCase().includes(searchVal);
             const matchUni = (p.university_name || '').toLowerCase().includes(searchVal);
             const matchDept = (p.department || '').toLowerCase().includes(searchVal);
             const matchNotes = (p.notes || '').toLowerCase().includes(searchVal);
             const matchFaculty = (p.faculty_match || '').toLowerCase().includes(searchVal);
-            if (!matchName && !matchUni && !matchDept && !matchNotes && !matchFaculty) {
+            const matchEvent = (p.intl_waiver_event || '').toLowerCase().includes(searchVal);
+            const matchDisc = (p.discipline_tag || '').toLowerCase().includes(searchVal);
+            if (!matchName && !matchUni && !matchDept && !matchNotes && !matchFaculty && !matchEvent && !matchDisc) {
                 return false;
             }
         }
 
-        // Degree filter
-        if (degreeVal && p.degree !== degreeVal) return false;
+        // Waiver pill filter
+        if (selectedWaiver) {
+            const pWaiver = p.intl_waiver_type || '';
+            if (selectedWaiver.includes('Free for All') && !pWaiver.includes('Free for All')) return false;
+            if (selectedWaiver.includes('Virtual Info Session') && !pWaiver.includes('Virtual Info Session')) return false;
+            if (selectedWaiver.includes('Financial Hardship') && !pWaiver.includes('Financial Hardship')) return false;
+            if (selectedWaiver.includes('Standard Paid') && !pWaiver.includes('Standard Paid')) return false;
+        }
+
+        // Discipline pill filter
+        if (selectedDiscipline) {
+            const pDisc = (p.discipline_tag || '').toLowerCase();
+            const targetDisc = selectedDiscipline.toLowerCase();
+            if (!pDisc.includes(targetDisc)) {
+                // Check partial key matches
+                if (targetDisc.includes('neuro') && !pDisc.includes('neuro')) return false;
+                if (targetDisc.includes('bme') && !(pDisc.includes('bme') || pDisc.includes('biomedical'))) return false;
+                if (targetDisc.includes('bioengineering') && !pDisc.includes('bioengineering')) return false;
+                if (targetDisc.includes('ece') && !(pDisc.includes('ece') || pDisc.includes('electrical'))) return false;
+                if (targetDisc.includes('psych') && !(pDisc.includes('psych') || pDisc.includes('cog'))) return false;
+                if (targetDisc.includes('comp') && !(pDisc.includes('comp') || pDisc.includes('bioinformatics'))) return false;
+                if (targetDisc.includes('biological') && !pDisc.includes('biological')) return false;
+                if (targetDisc.includes('ai') && !(pDisc.includes('machine learning') || pDisc.includes('ai'))) return false;
+            }
+        }
+
+        // Master requirement filter
+        if (masterReqVal) {
+            const pReq = (p.requires_master || '').toLowerCase();
+            if (masterReqVal === 'direct_bachelor') {
+                if (pReq.includes('yes') && !pReq.includes('no')) return false;
+            } else if (masterReqVal === 'master_required') {
+                if (!pReq.includes('yes') && !pReq.includes('master\'s degree required') && !pReq.includes('preferred')) return false;
+            }
+        }
+
+        // Language requirement filter (DET vs TOEFL)
+        if (langTypeVal) {
+            const pLang = (p.toefl_det || p.english_requirement || '').toLowerCase();
+            const detAccepted = pLang.includes('det: accepted') || pLang.includes('det accepted') || (pLang.includes('det') && !pLang.includes('not accepted'));
+            if (langTypeVal === 'det_accepted' && !detAccepted) return false;
+            if (langTypeVal === 'toefl_only' && detAccepted) return false;
+        }
+
+        // Letters of rec filter
+        if (lettersCountVal) {
+            const pLetters = (p.letters_of_rec || '').toLowerCase();
+            if (lettersCountVal === '2_letters' && !pLetters.includes('2')) return false;
+            if (lettersCountVal === '3_letters' && !pLetters.includes('3')) return false;
+        }
 
         // Status filter
         if (statusVal && (p.status || 'Considering') !== statusVal) return false;
@@ -240,7 +466,8 @@ function getFilteredPrograms() {
         if (countryVal && p.university_country !== countryVal) return false;
 
         // Deadline filter
-        if (deadlineVal && p.deadline) {
+        if (deadlineVal) {
+            if (!p.deadline) return false;
             const parts = p.deadline.split('-');
             const d = new Date(parts[0], parts[1] - 1, parts[2] || 1);
             d.setHours(0, 0, 0, 0);
@@ -248,10 +475,11 @@ function getFilteredPrograms() {
 
             if (deadlineVal === 'upcoming_30' && (diffDays < 0 || diffDays > 30)) return false;
             if (deadlineVal === 'upcoming_60' && (diffDays < 0 || diffDays > 60)) return false;
+            if (deadlineVal === 'dec_1' && !p.deadline.includes('-12-01')) return false;
+            if (deadlineVal === 'dec_15' && !p.deadline.includes('-12-15')) return false;
+            if (deadlineVal === 'jan' && (!p.deadline.includes('-01-') && !p.deadline.includes('-01/'))) return false;
             if (deadlineVal === 'future' && diffDays <= 60) return false;
             if (deadlineVal === 'passed' && diffDays >= 0) return false;
-        } else if (deadlineVal && !p.deadline) {
-            return false;
         }
 
         return true;
@@ -259,7 +487,21 @@ function getFilteredPrograms() {
 
     // Sorting
     filtered.sort((a, b) => {
-        if (sortVal === 'deadline_asc') {
+        if (sortVal === 'waiver_priority') {
+            const getPriority = (item) => {
+                const w = item.intl_waiver_type || '';
+                if (w.includes('Free for All')) return 1;
+                if (w.includes('Virtual Info Session')) return 2;
+                if (w.includes('Financial Hardship')) return 3;
+                return 4;
+            };
+            const pA = getPriority(a);
+            const pB = getPriority(b);
+            if (pA !== pB) return pA - pB;
+            if (!a.deadline) return 1;
+            if (!b.deadline) return -1;
+            return a.deadline.localeCompare(b.deadline);
+        } else if (sortVal === 'deadline_asc') {
             if (!a.deadline) return 1;
             if (!b.deadline) return -1;
             return a.deadline.localeCompare(b.deadline);
@@ -287,6 +529,8 @@ function renderPrograms() {
         countBadge.innerText = `${filtered.length} of ${allPrograms.length} programs`;
     }
 
+    renderActiveChips();
+
     if (currentViewMode === 'cards') {
         renderCardsView(filtered);
     } else {
@@ -308,8 +552,8 @@ function renderCardsView(programs) {
             <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; background: white; border-radius: 16px; border: 1px dashed #cbd5e1;">
                 <div style="font-size: 2.5em; margin-bottom: 12px;">🎓</div>
                 <h3 style="margin: 0 0 8px 0; color: #1e293b;">No matching programs found</h3>
-                <p style="margin: 0 0 16px 0; color: #64748b; font-size: 0.9em;">Try adjusting your filters or click below to add a new graduate program.</p>
-                <button class="btn btn-primary" onclick="openProgramModal()">➕ Add Your First Program</button>
+                <p style="margin: 0 0 16px 0; color: #64748b; font-size: 0.9em;">Try adjusting your filters or resetting all filters.</p>
+                <button class="btn btn-primary" onclick="resetAllFilters()">Reset All Filters</button>
             </div>
         `;
         return;
@@ -352,16 +596,86 @@ function renderCardsView(programs) {
         else if (p.degree === 'Postdoc') degreeBadgeStyle = 'background: #fef3c7; color: #92400e;';
         else if (p.degree === 'Fellowship') degreeBadgeStyle = 'background: #fce7f3; color: #9d174d;';
 
+        // Discipline tags rendering
+        let disciplinePillsHtml = '';
+        if (p.discipline_tag) {
+            const tags = p.discipline_tag.split(',').map(t => t.trim()).filter(t => t);
+            disciplinePillsHtml = tags.map(tag => {
+                let cls = 'disc-neuro';
+                const lower = tag.toLowerCase();
+                if (lower.includes('bme') || lower.includes('biomedical')) cls = 'disc-bme';
+                else if (lower.includes('bioengineering')) cls = 'disc-bioe';
+                else if (lower.includes('ece') || lower.includes('electrical')) cls = 'disc-ece';
+                else if (lower.includes('psych') || lower.includes('cog')) cls = 'disc-psych';
+                else if (lower.includes('comp') || lower.includes('bioinformatics')) cls = 'disc-compbio';
+                else if (lower.includes('biological')) cls = 'disc-biosci';
+                else if (lower.includes('machine learning') || lower.includes('ai')) cls = 'disc-ai';
+                return `<span class="discipline-pill-tag ${cls}">${escapeHtml(tag)}</span>`;
+            }).join('');
+        }
+
+        // Dedicated International Fee Waiver Callout
+        let waiverCalloutHtml = '';
+        const wType = p.intl_waiver_type || '';
+        if (wType.includes('Virtual Info Session')) {
+            waiverCalloutHtml = `
+                <div class="waiver-callout-card gold">
+                    <div class="waiver-badge-header">
+                        <span>🎟️ Virtual Info Session Free Waiver Code (Intl Eligible)</span>
+                    </div>
+                    <div class="waiver-event-title">
+                        ${escapeHtml(p.intl_waiver_event || 'Attend virtual graduate showcase/webinar to receive free application fee waiver code.')}
+                    </div>
+                    ${p.intl_waiver_link ? `
+                        <div>
+                            <a href="${escapeHtml(p.intl_waiver_link)}" target="_blank" rel="noopener noreferrer" class="waiver-btn gold">
+                                🔗 Register for Info Session / Get Code ↗
+                            </a>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        } else if (wType.includes('Free for All')) {
+            waiverCalloutHtml = `
+                <div class="waiver-callout-card green">
+                    <div class="waiver-badge-header">
+                        <span>🎁 100% Free Application ($0 Fee Worldwide)</span>
+                    </div>
+                    <div style="font-size:0.83em; color:#14532d;">
+                        ${escapeHtml(p.fee_waiver_info || 'No application fee charged for international or domestic applicants.')}
+                    </div>
+                </div>
+            `;
+        } else if (wType.includes('Financial Hardship')) {
+            waiverCalloutHtml = `
+                <div class="waiver-callout-card blue">
+                    <div class="waiver-badge-header">
+                        <span>🤝 Financial Hardship Waiver (Intl Eligible)</span>
+                    </div>
+                    <div style="font-size:0.83em; color:#1e3a8a;">
+                        ${escapeHtml(p.intl_waiver_event || p.fee_waiver_info || 'International applicants eligible to request fee waiver via application portal based on financial need.')}
+                    </div>
+                    ${p.intl_waiver_link ? `
+                        <div>
+                            <a href="${escapeHtml(p.intl_waiver_link)}" target="_blank" rel="noopener noreferrer" class="waiver-btn blue">
+                                Request Fee Waiver ↗
+                            </a>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
         // Faculty match tags
         let facultyPillsHtml = '';
         if (p.faculty_match) {
             const names = p.faculty_match.split(/[,;\n]/).map(n => n.trim()).filter(n => n);
             if (names.length > 0) {
                 facultyPillsHtml = `
-                    <div style="margin-top: 10px;">
+                    <div style="margin-top: 8px;">
                         <span style="font-size: 0.78em; color: #64748b; font-weight: 600;">Target Faculty:</span>
                         <div style="display:flex; flex-wrap:wrap; gap: 4px; margin-top: 4px;">
-                            ${names.map(name => `<span class="faculty-match-tag">${escapeHtml(name)}</span>`).join('')}
+                            ${names.map(name => `<span style="background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe; padding:2px 7px; border-radius:12px; font-size:0.75em; font-weight:600;">${escapeHtml(name)}</span>`).join('')}
                         </div>
                     </div>
                 `;
@@ -375,10 +689,21 @@ function renderCardsView(programs) {
             : 'index.html';
         const piLink = `${advisorPage}?uni=${encodeURIComponent(p.university_name || '')}`;
 
+        // Parse international admissions source link
+        let intlStatsHtml = '';
+        if (p.intl_student_stats) {
+            const parsedStats = renderStatsWithSource(p.intl_student_stats);
+            intlStatsHtml = `
+                <div style="background: #f0fdfa; border: 1px solid #ccfbf1; color: #0f766e; padding: 7px 10px; border-radius: 8px; font-size: 0.81em; margin-bottom: 12px; line-height: 1.4;">
+                    🌍 <strong>Intl Admissions:</strong> ${parsedStats}
+                </div>
+            `;
+        }
+
         return `
             <div class="program-card ${isUrgent ? 'urgent-border' : ''}" style="border-left: 5px solid ${statusCfg.color};">
                 <!-- University & Degree -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
                     <div>
                         <span style="font-weight: 700; color: #1e293b; font-size: 1.05em; display: flex; align-items: center; gap: 6px;">
                             🏛️ ${escapeHtml(p.university_name || 'Unknown University')}
@@ -390,16 +715,21 @@ function renderCardsView(programs) {
                     </span>
                 </div>
 
+                <!-- Discipline Tags -->
+                <div style="margin: 4px 0 8px 0;">
+                    ${disciplinePillsHtml}
+                </div>
+
                 <!-- Program Name & Department -->
-                <h3 style="margin: 6px 0 2px 0; font-size: 1.18em; color: var(--primary); font-weight: 700; line-height: 1.3;">
+                <h3 style="margin: 0 0 3px 0; font-size: 1.15em; color: var(--primary); font-weight: 700; line-height: 1.3;">
                     ${escapeHtml(p.name)}
                 </h3>
-                <div style="font-size: 0.85em; color: #475569; margin-bottom: 12px; min-height: 1.2em;">
+                <div style="font-size: 0.84em; color: #475569; margin-bottom: 10px; min-height: 1.2em;">
                     ${escapeHtml(p.department || 'Department not specified')}
                 </div>
 
                 <!-- Status Selector -->
-                <div style="margin-bottom: 12px;">
+                <div style="margin-bottom: 10px;">
                     <select class="program-status-select" onchange="quickUpdateProgramStatus(${p.id}, this.value)" style="background: ${statusCfg.bg}; color: ${statusCfg.color}; border: 1px solid ${statusCfg.border};">
                         ${Object.keys(STATUS_CONFIG).map(st => `
                             <option value="${st}" ${st === statusKey ? 'selected' : ''}>${STATUS_CONFIG[st].label}</option>
@@ -407,12 +737,15 @@ function renderCardsView(programs) {
                     </select>
                 </div>
 
+                <!-- Dedicated Fee Waiver Alert Banner -->
+                ${waiverCalloutHtml}
+
                 <!-- Deadline Box -->
-                <div class="program-info-pill" style="margin-bottom: 12px;">
+                <div style="background: #f8fafc; border: 1px solid #f1f5f9; padding: 7px 10px; border-radius: 8px; font-size: 0.84em; margin-bottom: 10px;">
                     ${deadlineHtml}
                 </div>
 
-                <!-- Key Requirements Grid -->
+                <!-- Key Requirements 4-Grid -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.82em; margin-bottom: 12px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #f1f5f9;">
                     <div>
                         <span style="color:#64748b;">💵 Fee:</span> <strong>${escapeHtml(p.app_fee || 'Unspecified')}</strong>
@@ -431,23 +764,8 @@ function renderCardsView(programs) {
                     </div>
                 </div>
 
-                <!-- Fee Waiver Alert / Info Session -->
-                ${p.fee_waiver_info ? `
-                    <div style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 8px 10px; border-radius: 8px; font-size: 0.82em; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 6px;">
-                        <span>🎁</span>
-                        <div style="flex:1;">
-                            <strong>Fee Waiver / Info Session:</strong> 
-                            ${renderClickableLinks(p.fee_waiver_info)}
-                        </div>
-                    </div>
-                ` : ''}
-
-                <!-- International Student Stats (if found) -->
-                ${p.intl_student_stats ? `
-                    <div style="background: #f0fdfa; border: 1px solid #ccfbf1; color: #0f766e; padding: 6px 10px; border-radius: 8px; font-size: 0.8em; margin-bottom: 12px;">
-                        🌍 <strong>Intl Admissions:</strong> ${escapeHtml(p.intl_student_stats)}
-                    </div>
-                ` : ''}
+                <!-- International Student Stats (with Source Link) -->
+                ${intlStatsHtml}
 
                 <!-- Affiliated PIs Link & Matched Faculty -->
                 <div style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed #e2e8f0;">
@@ -464,8 +782,8 @@ function renderCardsView(programs) {
 
                 <!-- Notes snippet -->
                 ${p.notes ? `
-                    <div style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 8px; border-radius: 6px; font-size: 0.82em; margin-bottom: 14px; max-height: 80px; overflow-y: auto;">
-                        <strong>📝 Notes:</strong> ${escapeHtml(p.notes)}
+                    <div style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 8px; border-radius: 6px; font-size: 0.81em; margin-bottom: 12px; max-height: 80px; overflow-y: auto;">
+                        <strong>📝 Strategy Notes:</strong> ${escapeHtml(p.notes)}
                     </div>
                 ` : ''}
 
@@ -499,7 +817,7 @@ function renderTableView(programs) {
     if (!tableBody) return;
 
     if (programs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 40px; color:#94a3b8;">No matching programs found.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 40px; color:#94a3b8;">No matching programs found.</td></tr>';
         return;
     }
 
@@ -521,167 +839,167 @@ function renderTableView(programs) {
             else deadlineText += ` (${diffDays}d)`;
         }
 
-        const piCount = p.affiliated_pi_count || 0;
-        const advisorPage = (window.location.protocol === 'file:' && (window.location.href.includes('NeuroAI') || !window.location.href.includes('Find_Your_Advisor'))) 
-            ? 'NeuroAI_Database.html' 
-            : 'index.html';
-        const piLink = `${advisorPage}?uni=${encodeURIComponent(p.university_name || '')}`;
+        // Waiver badge
+        let waiverCol = '<span style="color:#94a3b8;">Standard Paid</span>';
+        const wType = p.intl_waiver_type || '';
+        if (wType.includes('Virtual Info Session')) {
+            waiverCol = `
+                <div style="font-weight:700; color:#b45309; font-size:0.86em;">🎟️ Info Session Code</div>
+                <div style="font-size:0.78em; color:#78350f;">${escapeHtml(p.intl_waiver_event || '')}</div>
+                ${p.intl_waiver_link ? `<a href="${escapeHtml(p.intl_waiver_link)}" target="_blank" class="source-link-badge">Register ↗</a>` : ''}
+            `;
+        } else if (wType.includes('Free for All')) {
+            waiverCol = '<span style="font-weight:700; color:#15803d; font-size:0.86em;">🎁 $0 Free for All</span>';
+        } else if (wType.includes('Financial Hardship')) {
+            waiverCol = `
+                <div style="font-weight:600; color:#1d4ed8; font-size:0.86em;">🤝 Hardship Waiver</div>
+                ${p.intl_waiver_link ? `<a href="${escapeHtml(p.intl_waiver_link)}" target="_blank" class="source-link-badge">Request ↗</a>` : ''}
+            `;
+        }
 
         return `
-            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                <td style="padding: 12px 14px;">
-                    <div style="font-weight: 600; color: #1e293b;">${escapeHtml(p.university_name || 'Unknown')}</div>
-                    <span style="font-size: 0.78em; color: #64748b;">${escapeHtml(p.university_country || 'USA')}</span>
+            <tr>
+                <td>
+                    <strong style="color:#0f172a;">${escapeHtml(p.university_name || 'University')}</strong>
+                    <div style="font-size:0.8em; color:#64748b;">${escapeHtml(p.university_country || 'USA')}</div>
                 </td>
-                <td style="padding: 12px 14px;">
-                    <div style="font-weight: 700; color: var(--primary);">${escapeHtml(p.name)}</div>
-                    <span style="display:inline-block; font-size: 0.75em; padding: 2px 6px; border-radius: 8px; background: #e0e7ff; color: #3730a3; font-weight:600;">${escapeHtml(p.degree || 'PhD')}</span>
+                <td>
+                    <div style="font-weight:600; color:var(--primary);">${escapeHtml(p.name)}</div>
+                    <div style="display:flex; gap:4px; margin-top:3px; flex-wrap:wrap;">
+                        <span style="background:#e0e7ff; color:#3730a3; padding:1px 6px; border-radius:8px; font-size:0.75em; font-weight:700;">${escapeHtml(p.degree || 'PhD')}</span>
+                        ${p.discipline_tag ? `<span style="font-size:0.75em; color:#64748b;">${escapeHtml(p.discipline_tag)}</span>` : ''}
+                    </div>
                 </td>
-                <td style="padding: 12px 14px; font-size: 0.85em; color: #475569;">
-                    ${escapeHtml(p.department || '-')}
-                </td>
-                <td style="padding: 12px 14px;">
-                    <select class="program-status-select" onchange="quickUpdateProgramStatus(${p.id}, this.value)" style="background: ${statusCfg.bg}; color: ${statusCfg.color}; border: 1px solid ${statusCfg.border}; padding: 4px 8px; font-size: 0.82em;">
+                <td style="color:#475569; font-size:0.85em;">${escapeHtml(p.department || '-')}</td>
+                <td>
+                    <select class="program-status-select" onchange="quickUpdateProgramStatus(${p.id}, this.value)" style="background: ${statusCfg.bg}; color: ${statusCfg.color}; border: 1px solid ${statusCfg.border}; padding: 4px 6px; font-size: 0.82em;">
                         ${Object.keys(STATUS_CONFIG).map(st => `
                             <option value="${st}" ${st === statusKey ? 'selected' : ''}>${STATUS_CONFIG[st].label}</option>
                         `).join('')}
                     </select>
                 </td>
-                <td style="padding: 12px 14px; font-size: 0.85em; font-weight: 600; white-space: nowrap;">
-                    ${deadlineText}
+                <td style="white-space: nowrap; font-size: 0.85em;">${deadlineText}</td>
+                <td style="font-size: 0.82em;">${waiverCol}</td>
+                <td style="font-size: 0.82em;">${escapeHtml(p.toefl_det || p.english_requirement || '-')}</td>
+                <td style="font-size: 0.82em;">
+                    <div>${escapeHtml(p.requires_master || 'Bachelor OK')}</div>
+                    <div style="color:#64748b;">${escapeHtml(p.letters_of_rec || '3 letters')}</div>
                 </td>
-                <td style="padding: 12px 14px; font-size: 0.82em; color: #475569; max-width: 170px;">
-                    <div>${escapeHtml(p.toefl_det || p.english_requirement || '-')}</div>
+                <td style="font-size: 0.82em;">
+                    <div>${escapeHtml(p.faculty_match || '-')}</div>
+                    ${p.intl_student_stats ? `<div style="color:#0f766e; margin-top:2px;">${renderStatsWithSource(p.intl_student_stats)}</div>` : ''}
                 </td>
-                <td style="padding: 12px 14px; font-size: 0.82em; color: #475569;">
-                    <div>Fee: <strong>${escapeHtml(p.app_fee || '-')}</strong> (${escapeHtml(p.letters_of_rec || '3 recs')})</div>
-                    <div>Master's: <strong>${escapeHtml(p.requires_master || 'No')}</strong></div>
-                    ${p.fee_waiver_info ? `<div style="color:#059669; font-weight:600; margin-top:3px;">🎁 Waiver available</div>` : ''}
-                </td>
-                <td style="padding: 12px 14px; font-size: 0.82em;">
-                    <a href="${piLink}" style="color: var(--primary); font-weight: 600; text-decoration: none;">${piCount} PIs in DB →</a>
-                    ${p.faculty_match ? `<div style="font-size: 0.75em; color: #64748b; margin-top: 2px;">${escapeHtml(p.faculty_match)}</div>` : ''}
-                    ${p.intl_student_stats ? `<div style="font-size: 0.73em; color: #0d9488; margin-top: 2px;">🌍 ${escapeHtml(p.intl_student_stats)}</div>` : ''}
-                </td>
-                <td style="padding: 12px 14px; text-align: right; white-space: nowrap;">
-                    ${p.portal_url ? `<a href="${escapeHtml(p.portal_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-action" style="padding: 4px 8px; font-size: 0.8em; margin-right: 4px; text-decoration:none;">🔗</a>` : ''}
-                    <button class="btn btn-action" onclick="openProgramModal(${p.id})" title="Edit program" style="padding: 4px 8px; font-size: 0.8em; margin-right: 4px;">✏️</button>
-                    <button class="btn btn-action" onclick="deleteProgram(${p.id}, '${escapeJs(p.name)}')" title="Delete program" style="padding: 4px 8px; font-size: 0.8em; color: var(--danger);">🗑️</button>
+                <td style="text-align: right; white-space: nowrap;">
+                    <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                        ${p.portal_url ? `<a href="${escapeHtml(p.portal_url)}" target="_blank" class="btn btn-action" style="padding: 4px 6px; font-size: 0.78em;" title="Open Portal">🔗</a>` : ''}
+                        <button class="btn btn-action" onclick="openProgramModal(${p.id})" style="padding: 4px 6px; font-size: 0.78em;" title="Edit">✏️</button>
+                        <button class="btn btn-action" onclick="deleteProgram(${p.id}, '${escapeJs(p.name)}')" style="padding: 4px 6px; font-size: 0.78em; color:var(--danger);" title="Delete">🗑️</button>
+                    </div>
                 </td>
             </tr>
         `;
     }).join('');
 }
 
+// Helper to parse "Source: https://..." into clickable link
+function renderStatsWithSource(text) {
+    if (!text) return '';
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="source-link-badge">Official Source ↗</a>`;
+    });
+}
+
 function setViewMode(mode) {
     currentViewMode = mode;
-    const btnCards = document.getElementById('view-cards-btn');
-    const btnTable = document.getElementById('view-table-btn');
-    if (btnCards && btnTable) {
-        if (mode === 'cards') {
-            btnCards.className = 'btn btn-primary';
-            btnTable.className = 'btn btn-action';
-        } else {
-            btnCards.className = 'btn btn-action';
-            btnTable.className = 'btn btn-primary';
-        }
+    const cardsBtn = document.getElementById('view-cards-btn');
+    const tableBtn = document.getElementById('view-table-btn');
+    if (mode === 'cards') {
+        if (cardsBtn) { cardsBtn.className = 'btn btn-primary'; }
+        if (tableBtn) { tableBtn.className = 'btn btn-action'; }
+    } else {
+        if (cardsBtn) { cardsBtn.className = 'btn btn-action'; }
+        if (tableBtn) { tableBtn.className = 'btn btn-primary'; }
     }
     renderPrograms();
 }
 
-// --- Quick Status Updater ---
+// --- Quick Status Update ---
 async function quickUpdateProgramStatus(id, newStatus) {
-    const prog = allPrograms.find(p => p.id === id);
-    if (!prog) return;
-
     try {
-        const payload = {
-            id: prog.id,
-            university_id: prog.university_id,
-            name: prog.name,
-            degree: prog.degree,
-            department: prog.department,
-            deadline: prog.deadline,
-            app_fee: prog.app_fee,
-            gre_requirement: prog.gre_requirement,
-            english_requirement: prog.english_requirement,
-            status: newStatus,
-            portal_url: prog.portal_url,
-            faculty_match: prog.faculty_match,
-            notes: prog.notes,
-            toefl_det: prog.toefl_det,
-            requires_master: prog.requires_master,
-            intl_student_stats: prog.intl_student_stats,
-            fee_waiver_info: prog.fee_waiver_info,
-            letters_of_rec: prog.letters_of_rec
-        };
-
         const res = await fetch(`${API_BASE}/programs/update`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ id, status: newStatus })
         });
-
         if (!res.ok) throw new Error("Failed to update status");
-        prog.status = newStatus;
+        
+        const prog = allPrograms.find(p => p.id === id);
+        if (prog) prog.status = newStatus;
+        
         updateMetricsBanner();
         renderPrograms();
     } catch (err) {
-        alert(`Status update failed: ${err.message}`);
+        alert("Error updating program status: " + err.message);
     }
 }
 
-// --- Program Modal (Add & Edit) ---
+// --- Add / Edit Program Modal ---
 function openProgramModal(id = null) {
     const modal = document.getElementById('program-modal');
-    const titleEl = document.getElementById('program-modal-title');
+    const title = document.getElementById('program-modal-title');
+    const btn = document.getElementById('btn-save-program');
     if (!modal) return;
 
-    // Reset fields
-    document.getElementById('prog-id').value = '';
-    document.getElementById('prog-university').value = '';
-    document.getElementById('prog-name').value = '';
-    document.getElementById('prog-degree').value = 'PhD';
-    document.getElementById('prog-department').value = '';
-    document.getElementById('prog-deadline').value = '';
-    document.getElementById('prog-fee').value = '';
-    document.getElementById('prog-gre').value = 'Not Required';
-    document.getElementById('prog-english').value = '';
-    document.getElementById('prog-status').value = 'Considering';
-    if (document.getElementById('prog-toefl-det')) document.getElementById('prog-toefl-det').value = '';
-    if (document.getElementById('prog-requires-master')) document.getElementById('prog-requires-master').value = "No (Bachelor's eligible)";
-    if (document.getElementById('prog-letters')) document.getElementById('prog-letters').value = '3 letters required';
-    if (document.getElementById('prog-fee-waiver')) document.getElementById('prog-fee-waiver').value = '';
-    if (document.getElementById('prog-intl-stats')) document.getElementById('prog-intl-stats').value = '';
-    document.getElementById('prog-portal').value = '';
-    document.getElementById('prog-faculty').value = '';
-    document.getElementById('prog-notes').value = '';
-
     if (id) {
-        if (titleEl) titleEl.innerText = '✏️ Edit Program';
         const prog = allPrograms.find(p => p.id === id);
-        if (prog) {
-            document.getElementById('prog-id').value = prog.id;
-            document.getElementById('prog-university').value = prog.university_id || '';
-            document.getElementById('prog-name').value = prog.name || '';
-            document.getElementById('prog-degree').value = prog.degree || 'PhD';
-            document.getElementById('prog-department').value = prog.department || '';
-            document.getElementById('prog-deadline').value = prog.deadline || '';
-            document.getElementById('prog-fee').value = prog.app_fee || '';
-            document.getElementById('prog-gre').value = prog.gre_requirement || 'Not Required';
-            document.getElementById('prog-english').value = prog.english_requirement || '';
-            document.getElementById('prog-status').value = prog.status || 'Considering';
-            if (document.getElementById('prog-toefl-det')) document.getElementById('prog-toefl-det').value = prog.toefl_det || '';
-            if (document.getElementById('prog-requires-master')) document.getElementById('prog-requires-master').value = prog.requires_master || "No (Bachelor's eligible)";
-            if (document.getElementById('prog-letters')) document.getElementById('prog-letters').value = prog.letters_of_rec || '';
-            if (document.getElementById('prog-fee-waiver')) document.getElementById('prog-fee-waiver').value = prog.fee_waiver_info || '';
-            if (document.getElementById('prog-intl-stats')) document.getElementById('prog-intl-stats').value = prog.intl_student_stats || '';
-            document.getElementById('prog-portal').value = prog.portal_url || '';
-            document.getElementById('prog-faculty').value = prog.faculty_match || '';
-            document.getElementById('prog-notes').value = prog.notes || '';
-        }
+        if (!prog) return;
+
+        title.innerText = "✏️ Edit Academic Program";
+        btn.innerText = "Update Program";
+        document.getElementById('prog-id').value = prog.id;
+        document.getElementById('prog-university').value = prog.university_id || '';
+        document.getElementById('prog-name').value = prog.name || '';
+        document.getElementById('prog-degree').value = prog.degree || 'PhD';
+        document.getElementById('prog-department').value = prog.department || '';
+        document.getElementById('prog-discipline').value = prog.discipline_tag || '';
+        document.getElementById('prog-waiver-type').value = prog.intl_waiver_type || 'Standard Paid (Domestic Waivers Only)';
+        document.getElementById('prog-waiver-event').value = prog.intl_waiver_event || '';
+        document.getElementById('prog-waiver-link').value = prog.intl_waiver_link || '';
+        document.getElementById('prog-deadline').value = prog.deadline || '';
+        document.getElementById('prog-fee').value = prog.app_fee || '';
+        document.getElementById('prog-letters').value = prog.letters_of_rec || '3 letters required';
+        document.getElementById('prog-toefl-det').value = prog.toefl_det || prog.english_requirement || '';
+        document.getElementById('prog-requires-master').value = prog.requires_master || "No (Bachelor's eligible)";
+        document.getElementById('prog-fee-waiver').value = prog.fee_waiver_info || '';
+        document.getElementById('prog-intl-stats').value = prog.intl_student_stats || '';
+        document.getElementById('prog-status').value = prog.status || 'Considering';
+        document.getElementById('prog-portal').value = prog.portal_url || '';
+        document.getElementById('prog-faculty').value = prog.faculty_match || '';
+        document.getElementById('prog-notes').value = prog.notes || '';
     } else {
-        if (titleEl) titleEl.innerText = '➕ Add New Program';
+        title.innerText = "➕ Add New Academic Program";
+        btn.innerText = "Save Program";
+        document.getElementById('prog-id').value = '';
+        document.getElementById('prog-university').value = '';
+        document.getElementById('prog-name').value = '';
+        document.getElementById('prog-degree').value = 'PhD';
+        document.getElementById('prog-department').value = '';
+        document.getElementById('prog-discipline').value = '';
+        document.getElementById('prog-waiver-type').value = 'Standard Paid (Domestic Waivers Only)';
+        document.getElementById('prog-waiver-event').value = '';
+        document.getElementById('prog-waiver-link').value = '';
+        document.getElementById('prog-deadline').value = '';
+        document.getElementById('prog-fee').value = '';
+        document.getElementById('prog-letters').value = '3 letters required';
+        document.getElementById('prog-toefl-det').value = '';
+        document.getElementById('prog-requires-master').value = "No (Bachelor's eligible)";
+        document.getElementById('prog-fee-waiver').value = '';
+        document.getElementById('prog-intl-stats').value = '';
+        document.getElementById('prog-status').value = 'Considering';
+        document.getElementById('prog-portal').value = '';
+        document.getElementById('prog-faculty').value = '';
+        document.getElementById('prog-notes').value = '';
     }
 
     modal.style.display = 'flex';
@@ -694,55 +1012,43 @@ function closeProgramModal() {
 
 async function saveProgram() {
     const id = document.getElementById('prog-id').value;
-    const uniId = document.getElementById('prog-university').value;
+    const university_id = document.getElementById('prog-university').value;
     const name = document.getElementById('prog-name').value.trim();
-    const degree = document.getElementById('prog-degree').value;
-    const dept = document.getElementById('prog-department').value.trim();
-    const deadline = document.getElementById('prog-deadline').value.trim();
-    const fee = document.getElementById('prog-fee').value.trim();
-    const gre = document.getElementById('prog-gre').value;
-    const english = document.getElementById('prog-english').value.trim();
-    const status = document.getElementById('prog-status').value;
-    const portal = document.getElementById('prog-portal').value.trim();
-    const faculty = document.getElementById('prog-faculty').value.trim();
-    const notes = document.getElementById('prog-notes').value.trim();
-    const toeflDet = document.getElementById('prog-toefl-det') ? document.getElementById('prog-toefl-det').value.trim() : '';
-    const reqMaster = document.getElementById('prog-requires-master') ? document.getElementById('prog-requires-master').value : "No (Bachelor's eligible)";
-    const letters = document.getElementById('prog-letters') ? document.getElementById('prog-letters').value.trim() : '';
-    const feeWaiver = document.getElementById('prog-fee-waiver') ? document.getElementById('prog-fee-waiver').value.trim() : '';
-    const intlStats = document.getElementById('prog-intl-stats') ? document.getElementById('prog-intl-stats').value.trim() : '';
 
-    if (!name || !uniId) {
-        alert('Please fill in both the Program Name and University.');
+    if (!university_id) {
+        alert("Please select a university / institution.");
+        return;
+    }
+    if (!name) {
+        alert("Please enter the program name.");
         return;
     }
 
     const payload = {
-        university_id: parseInt(uniId, 10),
-        name: name,
-        degree: degree,
-        department: dept,
-        deadline: deadline,
-        app_fee: fee,
-        gre_requirement: gre,
-        english_requirement: english,
-        status: status,
-        portal_url: portal,
-        faculty_match: faculty,
-        notes: notes,
-        toefl_det: toeflDet,
-        requires_master: reqMaster,
-        letters_of_rec: letters,
-        fee_waiver_info: feeWaiver,
-        intl_student_stats: intlStats
+        university_id: parseInt(university_id, 10),
+        name,
+        degree: document.getElementById('prog-degree').value,
+        department: document.getElementById('prog-department').value.trim(),
+        discipline_tag: document.getElementById('prog-discipline').value.trim(),
+        intl_waiver_type: document.getElementById('prog-waiver-type').value,
+        intl_waiver_event: document.getElementById('prog-waiver-event').value.trim(),
+        intl_waiver_link: document.getElementById('prog-waiver-link').value.trim(),
+        deadline: document.getElementById('prog-deadline').value,
+        app_fee: document.getElementById('prog-fee').value.trim(),
+        letters_of_rec: document.getElementById('prog-letters').value.trim(),
+        toefl_det: document.getElementById('prog-toefl-det').value.trim(),
+        english_requirement: document.getElementById('prog-toefl-det').value.trim(),
+        requires_master: document.getElementById('prog-requires-master').value,
+        fee_waiver_info: document.getElementById('prog-fee-waiver').value.trim(),
+        intl_student_stats: document.getElementById('prog-intl-stats').value.trim(),
+        status: document.getElementById('prog-status').value,
+        portal_url: document.getElementById('prog-portal').value.trim(),
+        faculty_match: document.getElementById('prog-faculty').value.trim(),
+        notes: document.getElementById('prog-notes').value.trim()
     };
 
-    const isEdit = !!id;
-    if (isEdit) payload.id = parseInt(id, 10);
-    const endpoint = isEdit ? `${API_BASE}/programs/update` : `${API_BASE}/programs/add`;
-
-    const saveBtn = document.getElementById('btn-save-program');
-    if (saveBtn) saveBtn.disabled = true;
+    const endpoint = id ? `${API_BASE}/programs/update` : `${API_BASE}/programs/add`;
+    if (id) payload.id = parseInt(id, 10);
 
     try {
         const res = await fetch(endpoint, {
@@ -750,23 +1056,19 @@ async function saveProgram() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        const result = await res.json();
         if (!res.ok) {
-            alert(`Error: ${result.error || 'Failed to save program'}`);
-            return;
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || "Failed to save program");
         }
-
         closeProgramModal();
         await loadPrograms();
     } catch (err) {
-        alert(`Request failed: ${err.message}`);
-    } finally {
-        if (saveBtn) saveBtn.disabled = false;
+        alert("Error saving program: " + err.message);
     }
 }
 
-async function deleteProgram(id, name) {
-    if (!confirm(`Are you sure you want to delete the program "${name}"?`)) return;
+async function deleteProgram(id, progName) {
+    if (!confirm(`Are you sure you want to delete the program "${progName}"?`)) return;
 
     try {
         const res = await fetch(`${API_BASE}/programs/delete`, {
@@ -774,104 +1076,114 @@ async function deleteProgram(id, name) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
         });
-        const result = await res.json();
-        if (!res.ok) {
-            alert(`Error: ${result.error || 'Failed to delete program'}`);
-            return;
-        }
-
+        if (!res.ok) throw new Error("Failed to delete program");
         await loadPrograms();
     } catch (err) {
-        alert(`Delete failed: ${err.message}`);
+        alert("Error deleting program: " + err.message);
     }
 }
 
-// Auto-suggest PIs from selected university in modal
+// Suggest PIs from selected school into the target faculty input
 async function suggestPIsForModal() {
     const uniSelect = document.getElementById('prog-university');
-    const uniId = uniSelect ? uniSelect.value : null;
+    const facultyInput = document.getElementById('prog-faculty');
+    if (!uniSelect || !facultyInput) return;
+
+    const uniId = uniSelect.value;
     if (!uniId) {
-        alert('Please select a university first.');
+        alert("Please select a university first.");
         return;
     }
 
-    const selectedUni = allUniversities.find(u => u.id == uniId);
+    const selectedUni = allUniversities.find(u => String(u.id) === String(uniId));
     if (!selectedUni) return;
 
     try {
-        const res = await fetch(`${API_BASE}/researchers?universities=${encodeURIComponent(selectedUni.name)}`);
+        const res = await fetch(`${API_BASE}/researchers?limit=1000`);
+        if (!res.ok) throw new Error("Failed to fetch researchers");
         const researchers = await res.json();
+        
+        const matched = researchers.filter(r => {
+            const uName = (r.university || '').toLowerCase();
+            return uName.includes(selectedUni.name.toLowerCase()) || selectedUni.name.toLowerCase().includes(uName);
+        });
 
-        if (!researchers || researchers.length === 0) {
-            alert(`No researchers found in database for ${selectedUni.name}.`);
+        if (matched.length === 0) {
+            alert(`No affiliated PIs currently in database for ${selectedUni.name}. You can type faculty names manually.`);
             return;
         }
 
-        const facultyInput = document.getElementById('prog-faculty');
-        const currentFaculty = (facultyInput.value || '').trim();
-        const piNames = researchers.slice(0, 6).map(r => r.Name).filter(Boolean);
-        const combined = currentFaculty ? `${currentFaculty}, ${piNames.join(', ')}` : piNames.join(', ');
-        facultyInput.value = combined;
+        const topPIs = matched.slice(0, 5).map(r => r.name).join(', ');
+        if (facultyInput.value.trim()) {
+            facultyInput.value += ', ' + topPIs;
+        } else {
+            facultyInput.value = topPIs;
+        }
     } catch (err) {
-        alert(`Failed to fetch PIs: ${err.message}`);
+        console.error("Error suggesting PIs:", err);
     }
 }
 
-// --- CSV Export ---
+// --- Export CSV ---
 function exportProgramsCSV() {
     if (allPrograms.length === 0) {
-        alert('No programs to export.');
+        alert("No programs available to export.");
         return;
     }
 
     const headers = [
-        'ID', 'University', 'Country', 'Program Name', 'Degree', 'Department',
-        'Status', 'Deadline', 'Application Fee', 'Fee Waiver Info', 'Language (TOEFL/DET)',
-        'Master Required?', 'Letters of Rec', 'International Stats', 'GRE',
-        'Portal URL', 'Target Faculty', 'Notes', 'Affiliated PIs Count'
+        "University", "Country", "Program Name", "Degree", "Department",
+        "Discipline Tags", "International Waiver Type", "Waiver Event / Timeline", "Waiver Link",
+        "Deadline", "Application Fee", "Letters of Rec", "TOEFL / DET Requirements",
+        "Requires Master", "Application Status", "Portal URL", "Target Faculty", "Admissions Stats", "Notes"
     ];
 
     const rows = allPrograms.map(p => [
-        p.id,
-        `"${(p.university_name || '').replace(/"/g, '""')}"`,
-        `"${(p.university_country || '').replace(/"/g, '""')}"`,
-        `"${(p.name || '').replace(/"/g, '""')}"`,
-        `"${(p.degree || '').replace(/"/g, '""')}"`,
-        `"${(p.department || '').replace(/"/g, '""')}"`,
-        `"${(p.status || '').replace(/"/g, '""')}"`,
-        `"${(p.deadline || '').replace(/"/g, '""')}"`,
-        `"${(p.app_fee || '').replace(/"/g, '""')}"`,
-        `"${(p.gre_requirement || '').replace(/"/g, '""')}"`,
-        `"${(p.english_requirement || '').replace(/"/g, '""')}"`,
-        `"${(p.portal_url || '').replace(/"/g, '""')}"`,
-        `"${(p.faculty_match || '').replace(/"/g, '""')}"`,
-        `"${(p.notes || '').replace(/"/g, '""')}"`,
-        p.affiliated_pi_count || 0
+        p.university_name || '',
+        p.university_country || '',
+        p.name || '',
+        p.degree || '',
+        p.department || '',
+        p.discipline_tag || '',
+        p.intl_waiver_type || '',
+        p.intl_waiver_event || '',
+        p.intl_waiver_link || '',
+        p.deadline || '',
+        p.app_fee || '',
+        p.letters_of_rec || '',
+        p.toefl_det || p.english_requirement || '',
+        p.requires_master || '',
+        p.status || '',
+        p.portal_url || '',
+        p.faculty_match || '',
+        p.intl_student_stats || '',
+        p.notes || ''
     ]);
 
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\r\n');
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    const dateStr = new Date().toISOString().slice(0, 10);
-    link.download = `Find_Your_Advisor_Programs_${dateStr}.csv`;
+    link.download = `academic_programs_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
-// --- Institution Management System (Reused for modal) ---
-let cachedInstitutionsList = [];
+// --- Institution Management Modal Handlers ---
+let allInstitutionsData = [];
 
 async function openInstitutionModal() {
     const modal = document.getElementById('institution-modal');
     if (!modal) return;
     modal.style.display = 'flex';
     cancelUniForm();
-    const searchInput = document.getElementById('uni-table-search');
-    if (searchInput) searchInput.value = '';
-    await loadInstitutionsTable();
+    await loadInstitutionsList();
 }
 
 function closeInstitutionModal() {
@@ -879,179 +1191,166 @@ function closeInstitutionModal() {
     if (modal) modal.style.display = 'none';
 }
 
-async function loadInstitutionsTable() {
-    const tbody = document.getElementById('institutions-table-body');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#64748b;">Loading institutions...</td></tr>';
-    
-    try {
-        const res = await fetch(`${API_BASE}/universities`);
-        if (!res.ok) throw new Error("Failed to load institutions");
-        cachedInstitutionsList = await res.json();
-        renderInstitutionsTable();
-    } catch (err) {
-        if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:#ef4444;">Error: ${err.message}</td></tr>`;
-    }
-}
-
-function filterInstitutionsTable() {
-    const searchInput = document.getElementById('uni-table-search');
-    const filterText = (searchInput ? searchInput.value : '').trim().toLowerCase();
-    renderInstitutionsTable(filterText);
-}
-
-function renderInstitutionsTable(filterText = '') {
+async function loadInstitutionsList() {
     const tbody = document.getElementById('institutions-table-body');
     const badge = document.getElementById('uni-count-badge');
     if (!tbody) return;
 
-    let filtered = cachedInstitutionsList;
-    if (filterText) {
-        filtered = cachedInstitutionsList.filter(u => 
-            (u.name && u.name.toLowerCase().includes(filterText)) ||
-            (u.country && u.country.toLowerCase().includes(filterText))
-        );
-    }
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#64748b;">⏳ Loading institutions...</td></tr>';
 
-    if (badge) {
-        badge.innerText = `${filtered.length} of ${cachedInstitutionsList.length} institutions`;
+    try {
+        const res = await fetch(`${API_BASE}/institutions`);
+        if (!res.ok) throw new Error("Failed to load institutions");
+        allInstitutionsData = await res.json();
+        
+        if (badge) badge.innerText = `${allInstitutionsData.length} institutions`;
+        renderInstitutionsTable(allInstitutionsData);
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:#ef4444;">Error: ${err.message}</td></tr>`;
     }
+}
 
-    if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#94a3b8;">No institutions match the filter.</td></tr>';
+function renderInstitutionsTable(list) {
+    const tbody = document.getElementById('institutions-table-body');
+    if (!tbody) return;
+
+    if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#64748b;">No institutions found.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = filtered.map(uni => {
-        const safeName = (uni.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        const hasCoords = (uni.lat !== null && uni.lat !== undefined && uni.lat !== '' && 
-                           uni.lon !== null && uni.lon !== undefined && uni.lon !== '');
-        const coordsText = hasCoords 
-            ? `${Number(uni.lat).toFixed(4)}, ${Number(uni.lon).toFixed(4)}`
-            : '<span style="color:#94a3b8; font-style:italic;">None</span>';
-        const piCount = uni.researcher_count || 0;
-        const piBadgeStyle = piCount > 0 
-            ? 'background: #dbeafe; color: #1e40af;' 
-            : 'background: #f1f5f9; color: #64748b;';
-
-        return `
-            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                <td style="padding: 10px 14px; font-weight: 600; color: var(--text-main);">
-                    ${escapeHtml(uni.name)}
-                </td>
-                <td style="padding: 10px 12px; color: var(--text-muted);">
-                    ${escapeHtml(uni.country || 'USA')}
-                </td>
-                <td style="padding: 10px 12px; font-family: monospace; font-size: 0.82em; color: #475569;">
-                    ${coordsText}
-                </td>
-                <td style="padding: 10px 12px; text-align: center;">
-                    <span style="${piBadgeStyle} padding: 2px 8px; border-radius: 12px; font-weight: 600; font-size: 0.8em; display: inline-block;">
-                        ${piCount} PIs
-                    </span>
-                </td>
-                <td style="padding: 10px 14px; text-align: right; white-space: nowrap;">
-                    <button class="btn btn-action" onclick="editInstitution(${uni.id})" title="Edit institution" style="padding: 4px 8px; font-size: 0.8em; margin-right: 4px;">✏️</button>
-                    <button class="btn btn-action" onclick="deleteInstitution(${uni.id}, '${safeName}', ${piCount})" title="Delete institution" style="padding: 4px 8px; font-size: 0.8em; color: var(--danger);">🗑️</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+    tbody.innerHTML = list.map(u => `
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 10px 14px; font-weight:600; color:#1e293b;">
+                ${escapeHtml(u.name)}
+            </td>
+            <td style="padding: 10px 12px; color:#64748b;">
+                ${escapeHtml(u.country || 'USA')}
+            </td>
+            <td style="padding: 10px 12px; font-family: monospace; font-size:0.85em; color:#64748b;">
+                ${(u.lat != null && u.lon != null) ? `${Number(u.lat).toFixed(2)}, ${Number(u.lon).toFixed(2)}` : '<span style="color:#f59e0b;">Missing</span>'}
+            </td>
+            <td style="padding: 10px 12px; text-align:center; font-weight:700; color:${u.researcher_count > 0 ? '#2563eb' : '#94a3b8'};">
+                ${u.researcher_count || 0}
+            </td>
+            <td style="padding: 10px 14px; text-align:right;">
+                <div style="display:flex; justify-content:flex-end; gap:6px;">
+                    <button class="btn btn-action" onclick="editUniForm(${u.id})" style="padding:4px 8px; font-size:0.8em;">✏️ Edit</button>
+                    <button class="btn btn-action" onclick="deleteInstitution(${u.id}, '${escapeJs(u.name)}', ${u.researcher_count || 0})" style="padding:4px 8px; font-size:0.8em; color:var(--danger);">🗑️</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
 }
 
-function toggleAddUniForm(show = null) {
+function filterInstitutionsTable() {
+    const q = (document.getElementById('uni-table-search')?.value || '').toLowerCase().trim();
+    if (!q) {
+        renderInstitutionsTable(allInstitutionsData);
+        return;
+    }
+    const filtered = allInstitutionsData.filter(u => 
+        (u.name || '').toLowerCase().includes(q) || 
+        (u.country || '').toLowerCase().includes(q)
+    );
+    renderInstitutionsTable(filtered);
+}
+
+function toggleAddUniForm() {
     const card = document.getElementById('uni-form-card');
-    const toggleBtn = document.getElementById('toggle-add-uni-btn');
     if (!card) return;
-    
-    const shouldShow = (show !== null) ? show : (card.style.display === 'none');
-    if (shouldShow) {
+    if (card.style.display === 'none') {
+        document.getElementById('uni-form-id').value = '';
+        document.getElementById('uni-form-name').value = '';
+        document.getElementById('uni-form-country').value = 'USA';
+        document.getElementById('uni-form-lat').value = '';
+        document.getElementById('uni-form-lon').value = '';
+        document.getElementById('uni-form-title').innerText = "➕ Add New Institution";
+        document.getElementById('uni-form-submit-btn').innerText = "Save Institution";
         card.style.display = 'block';
-        if (toggleBtn) toggleBtn.innerText = '➖ Hide Form';
     } else {
-        cancelUniForm();
+        card.style.display = 'none';
     }
 }
 
 function cancelUniForm() {
     const card = document.getElementById('uni-form-card');
-    const toggleBtn = document.getElementById('toggle-add-uni-btn');
     if (card) card.style.display = 'none';
-    if (toggleBtn) toggleBtn.innerText = '➕ Add Institution';
-
-    const idInput = document.getElementById('uni-form-id');
-    const nameInput = document.getElementById('uni-form-name');
-    const countryInput = document.getElementById('uni-form-country');
-    const latInput = document.getElementById('uni-form-lat');
-    const lonInput = document.getElementById('uni-form-lon');
-    const titleEl = document.getElementById('uni-form-title');
-    const hintEl = document.getElementById('uni-form-hint');
-    const submitBtn = document.getElementById('uni-form-submit-btn');
-    const noticeEl = document.getElementById('uni-sync-notice');
-
-    if (idInput) idInput.value = '';
-    if (nameInput) nameInput.value = '';
-    if (countryInput) countryInput.value = '';
-    if (latInput) latInput.value = '';
-    if (lonInput) lonInput.value = '';
-    if (titleEl) titleEl.innerText = '➕ Add New Institution';
-    if (hintEl) hintEl.innerText = '';
-    if (submitBtn) submitBtn.innerText = 'Save Institution';
-    if (noticeEl) noticeEl.style.display = 'none';
 }
 
-function editInstitution(id) {
-    const uni = cachedInstitutionsList.find(u => u.id === id);
-    if (!uni) return;
-
-    toggleAddUniForm(true);
-    document.getElementById('uni-form-id').value = uni.id;
-    document.getElementById('uni-form-name').value = uni.name || '';
-    document.getElementById('uni-form-country').value = uni.country || '';
-    document.getElementById('uni-form-lat').value = (uni.lat !== null && uni.lat !== undefined) ? uni.lat : '';
-    document.getElementById('uni-form-lon').value = (uni.lon !== null && uni.lon !== undefined) ? uni.lon : '';
-    
-    document.getElementById('uni-form-title').innerText = `✏️ Edit Institution: ${uni.name}`;
-    document.getElementById('uni-form-submit-btn').innerText = 'Update Institution';
-    
-    const piCount = uni.researcher_count || 0;
-    const hint = document.getElementById('uni-form-hint');
-    const notice = document.getElementById('uni-sync-notice');
-    if (piCount > 0) {
-        if (hint) hint.innerText = `Affiliated with ${piCount} researcher(s)`;
-        if (notice) notice.style.display = 'block';
-    } else {
-        if (hint) hint.innerText = 'No affiliated researchers yet';
-        if (notice) notice.style.display = 'none';
-    }
+function editUniForm(id) {
+    const u = allInstitutionsData.find(item => item.id === id);
+    if (!u) return;
 
     const card = document.getElementById('uni-form-card');
-    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!card) return;
+
+    document.getElementById('uni-form-id').value = u.id;
+    document.getElementById('uni-form-name').value = u.name || '';
+    document.getElementById('uni-form-country').value = u.country || 'USA';
+    document.getElementById('uni-form-lat').value = u.lat != null ? u.lat : '';
+    document.getElementById('uni-form-lon').value = u.lon != null ? u.lon : '';
+    document.getElementById('uni-form-title').innerText = `✏️ Edit: ${u.name}`;
+    document.getElementById('uni-form-submit-btn').innerText = "Update Institution";
+    card.style.display = 'block';
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function autoDetectCoordinates() {
+    const name = document.getElementById('uni-form-name')?.value.trim();
+    const btn = document.getElementById('uni-detect-coord-btn');
+    if (!name) {
+        alert("Please enter the university name first.");
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Looking up...";
+    }
+
+    try {
+        const query = encodeURIComponent(name);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`);
+        if (!res.ok) throw new Error("Network error during lookup");
+        const data = await res.json();
+        if (data && data.length > 0) {
+            document.getElementById('uni-form-lat').value = parseFloat(data[0].lat).toFixed(4);
+            document.getElementById('uni-form-lon').value = parseFloat(data[0].lon).toFixed(4);
+        } else {
+            alert(`Could not automatically locate "${name}". Please check the spelling or enter coordinates manually.`);
+        }
+    } catch (err) {
+        alert("Lookup failed: " + err.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "🌐 Auto-Detect";
+        }
+    }
 }
 
 async function submitUniForm() {
     const id = document.getElementById('uni-form-id').value;
     const name = document.getElementById('uni-form-name').value.trim();
-    const country = document.getElementById('uni-form-country').value.trim() || 'USA';
-    const latStr = document.getElementById('uni-form-lat').value.trim();
-    const lonStr = document.getElementById('uni-form-lon').value.trim();
+    const country = document.getElementById('uni-form-country').value.trim();
+    const lat = document.getElementById('uni-form-lat').value.trim();
+    const lon = document.getElementById('uni-form-lon').value.trim();
 
     if (!name) {
-        alert('Please enter an institution name.');
+        alert("Please provide the institution name.");
         return;
     }
 
     const payload = {
-        name: name,
-        country: country,
-        lat: latStr !== '' ? parseFloat(latStr) : null,
-        lon: lonStr !== '' ? parseFloat(lonStr) : null
+        name,
+        country: country || 'USA',
+        lat: lat ? parseFloat(lat) : null,
+        lon: lon ? parseFloat(lon) : null
     };
 
-    const isEdit = !!id;
-    if (isEdit) payload.id = parseInt(id, 10);
-    const endpoint = isEdit ? `${API_BASE}/universities/update` : `${API_BASE}/universities/add`;
-    const submitBtn = document.getElementById('uni-form-submit-btn');
-    if (submitBtn) submitBtn.disabled = true;
+    const endpoint = id ? `${API_BASE}/institutions/update` : `${API_BASE}/institutions/add`;
+    if (id) payload.id = parseInt(id, 10);
 
     try {
         const res = await fetch(endpoint, {
@@ -1059,124 +1358,51 @@ async function submitUniForm() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        const result = await res.json();
         if (!res.ok) {
-            alert(`Error: ${result.error || 'Failed to save institution'}`);
-            return;
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Failed to save institution");
         }
-
         cancelUniForm();
-        await loadInstitutionsTable();
+        await loadInstitutionsList();
         await loadUniversities();
     } catch (err) {
-        alert(`Request failed: ${err.message}`);
-    } finally {
-        if (submitBtn) submitBtn.disabled = false;
+        alert("Error saving institution: " + err.message);
     }
 }
 
-async function deleteInstitution(id, name, piCount) {
+async function deleteInstitution(id, name, resCount) {
     let confirmMsg = `Are you sure you want to delete "${name}"?`;
-    if (piCount > 0) {
-        confirmMsg = `Are you sure you want to delete "${name}"?\\n\\n⚠️ WARNING: There are ${piCount} researcher(s) affiliated with this institution. They will be unlinked (their profiles will be kept, but institution cleared).`;
+    if (resCount > 0) {
+        confirmMsg = `WARNING: "${name}" currently has ${resCount} affiliated researcher(s).\nDeleting this institution will un-link them. Are you sure you want to proceed?`;
     }
-
     if (!confirm(confirmMsg)) return;
 
     try {
-        const res = await fetch(`${API_BASE}/universities/delete`, {
+        const res = await fetch(`${API_BASE}/institutions/delete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
         });
-        const result = await res.json();
-        if (!res.ok) {
-            alert(`Error: ${result.error || 'Failed to delete institution'}`);
-            return;
-        }
-
-        await loadInstitutionsTable();
+        if (!res.ok) throw new Error("Failed to delete institution");
+        await loadInstitutionsList();
         await loadUniversities();
     } catch (err) {
-        alert(`Delete failed: ${err.message}`);
+        alert("Error deleting institution: " + err.message);
     }
 }
 
-async function autoDetectCoordinates() {
-    const name = document.getElementById('uni-form-name').value.trim();
-    const country = document.getElementById('uni-form-country').value.trim();
-    const detectBtn = document.getElementById('uni-detect-coord-btn');
-
-    if (!name) {
-        alert('Please enter an institution name first to look up coordinates.');
-        return;
-    }
-
-    if (detectBtn) {
-        detectBtn.disabled = true;
-        detectBtn.innerText = '⌛ Searching...';
-    }
-
-    try {
-        let query = `${name} ${country}`.trim();
-        let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
-        let res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        let data = await res.json();
-
-        if (!data || data.length === 0) {
-            url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1`;
-            res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-            data = await res.json();
-        }
-
-        if (data && data.length > 0) {
-            const lat = parseFloat(data[0].lat).toFixed(4);
-            const lon = parseFloat(data[0].lon).toFixed(4);
-            document.getElementById('uni-form-lat').value = lat;
-            document.getElementById('uni-form-lon').value = lon;
-            
-            if (!country && data[0].display_name) {
-                const parts = data[0].display_name.split(',');
-                const detectedCountry = parts[parts.length - 1].trim();
-                if (detectedCountry) {
-                    document.getElementById('uni-form-country').value = detectedCountry;
-                }
-            }
-        } else {
-            alert(`Could not automatically find coordinates for "${name}". You can enter latitude and longitude manually.`);
-        }
-    } catch (err) {
-        alert(`Geocoding lookup failed: ${err.message}. You can enter coordinates manually.`);
-    } finally {
-        if (detectBtn) {
-            detectBtn.disabled = false;
-            detectBtn.innerText = '🌐 Auto-Detect';
-        }
-    }
-}
-
-// --- Helper Functions ---
+// --- Utilities ---
 function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
+    if (!str) return '';
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+        .replace(/'/g, '&#039;');
 }
 
 function escapeJs(str) {
-    if (str === null || str === undefined) return '';
-    return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-}
-
-
-function renderClickableLinks(text) {
-    if (!text) return '';
-    const urlRegex = /(https?:\/\/[^\s,]+)/g;
-    const safeText = escapeHtml(text);
-    return safeText.replace(urlRegex, (url) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#047857; font-weight:700; text-decoration:underline;">[Session / Waiver Link ↗]</a>`;
-    });
+    if (!str) return '';
+    return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
