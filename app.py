@@ -82,6 +82,26 @@ def init_database_if_needed():
     """)
 
     cursor.execute("""
+    CREATE TABLE IF NOT EXISTS programs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        university_id INTEGER,
+        name TEXT NOT NULL,
+        degree TEXT DEFAULT 'PhD',
+        department TEXT,
+        deadline TEXT,
+        app_fee TEXT,
+        gre_requirement TEXT,
+        english_requirement TEXT,
+        status TEXT DEFAULT 'Considering',
+        portal_url TEXT,
+        faculty_match TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(university_id) REFERENCES universities(id) ON DELETE SET NULL
+    )
+    """)
+
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT NOT NULL,
@@ -152,6 +172,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.handle_get_logs()
         elif path == '/api/researchers/history':
             self.handle_get_researcher_history(parsed_path.query)
+        elif path == '/api/programs':
+            self.handle_get_programs(parsed_path.query)
         else:
             # Static File Serving
             self.handle_static_file(path)
@@ -175,14 +197,22 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.handle_save_log()
         elif path == '/api/logs/delete':
             self.handle_delete_log()
+        elif path == '/api/programs/add':
+            self.handle_add_program()
+        elif path == '/api/programs/update':
+            self.handle_update_program()
+        elif path == '/api/programs/delete':
+            self.handle_delete_program()
         else:
             self.send_response(404)
             self.end_headers()
 
     def handle_static_file(self, path):
-        # Default index
+        # Default index and programs route
         if path in ('/', ''):
             path = '/index.html'
+        elif path in ('/programs', '/program'):
+            path = '/programs.html'
             
         safe_rel_path = path.lstrip('/')
         # Prevent directory traversal
@@ -600,6 +630,168 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.end_headers()
         self.wfile.write(json.dumps({'status': 'success', 'deleted_id': u_id}).encode('utf-8'))
+
+    # ==========================================
+    # --- Program Management Handlers ---
+    # ==========================================
+    def handle_get_programs(self, query_string=''):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                p.id, 
+                p.university_id, 
+                u.name as university_name, 
+                u.country as university_country,
+                u.lat as university_lat,
+                u.lon as university_lon,
+                p.name, 
+                p.degree, 
+                p.department, 
+                p.deadline, 
+                p.app_fee, 
+                p.gre_requirement, 
+                p.english_requirement, 
+                p.status, 
+                p.portal_url, 
+                p.faculty_match, 
+                p.notes, 
+                p.created_at,
+                (SELECT COUNT(*) FROM researchers r WHERE r.university_id = p.university_id) as affiliated_pi_count
+            FROM programs p
+            LEFT JOIN universities u ON p.university_id = u.id
+            ORDER BY 
+                CASE WHEN p.deadline IS NULL OR p.deadline = '' THEN 1 ELSE 0 END,
+                p.deadline ASC,
+                p.name ASC
+        """)
+        rows = cursor.fetchall()
+        result = [dict(r) for r in rows]
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+
+    def handle_add_program(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        name = (data.get('name') or '').strip()
+        university_id = data.get('university_id')
+        degree = (data.get('degree') or 'PhD').strip()
+        department = (data.get('department') or '').strip()
+        deadline = (data.get('deadline') or '').strip()
+        app_fee = (data.get('app_fee') or '').strip()
+        gre_requirement = (data.get('gre_requirement') or 'Not Required').strip()
+        english_requirement = (data.get('english_requirement') or '').strip()
+        status = (data.get('status') or 'Considering').strip()
+        portal_url = (data.get('portal_url') or '').strip()
+        faculty_match = (data.get('faculty_match') or '').strip()
+        notes = (data.get('notes') or '').strip()
+        
+        if not name or not university_id:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Program name and University are required'}).encode('utf-8'))
+            return
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO programs (
+                university_id, name, degree, department, deadline, app_fee,
+                gre_requirement, english_requirement, status, portal_url,
+                faculty_match, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            int(university_id), name, degree, department, deadline, app_fee,
+            gre_requirement, english_requirement, status, portal_url,
+            faculty_match, notes
+        ))
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success', 'id': new_id}).encode('utf-8'))
+
+    def handle_update_program(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        p_id = data.get('id')
+        name = (data.get('name') or '').strip()
+        university_id = data.get('university_id')
+        degree = (data.get('degree') or 'PhD').strip()
+        department = (data.get('department') or '').strip()
+        deadline = (data.get('deadline') or '').strip()
+        app_fee = (data.get('app_fee') or '').strip()
+        gre_requirement = (data.get('gre_requirement') or 'Not Required').strip()
+        english_requirement = (data.get('english_requirement') or '').strip()
+        status = (data.get('status') or 'Considering').strip()
+        portal_url = (data.get('portal_url') or '').strip()
+        faculty_match = (data.get('faculty_match') or '').strip()
+        notes = (data.get('notes') or '').strip()
+        
+        if not p_id or not name or not university_id:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'ID, Program name, and University are required'}).encode('utf-8'))
+            return
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE programs SET 
+                university_id = ?, name = ?, degree = ?, department = ?,
+                deadline = ?, app_fee = ?, gre_requirement = ?,
+                english_requirement = ?, status = ?, portal_url = ?,
+                faculty_match = ?, notes = ?
+            WHERE id = ?
+        """, (
+            int(university_id), name, degree, department, deadline, app_fee,
+            gre_requirement, english_requirement, status, portal_url,
+            faculty_match, notes, int(p_id)
+        ))
+        conn.commit()
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success'}).encode('utf-8'))
+
+    def handle_delete_program(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        p_id = data.get('id')
+        if not p_id:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'Program ID is required'}).encode('utf-8'))
+            return
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM programs WHERE id = ?", (int(p_id),))
+        conn.commit()
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success', 'deleted_id': p_id}).encode('utf-8'))
 
     def handle_get_logs(self):
         conn = get_db_connection()

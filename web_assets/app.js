@@ -364,7 +364,7 @@ function renderGridPage(append = false) {
                 ((r.Lat && r.Lon) || (r.uni_lat && r.uni_lon)) 
                 ? `<span class="uni-fly-link" onclick="event.stopPropagation(); flyToUniversity('${(r.University || r.uni_name || '').replace(/'/g, "\\'")}', ${r.Lat || r.uni_lat}, ${r.Lon || r.uni_lon})" title="Fly to university on map">📍 ${r.University || ''}</span>`
                 : (r.University || '')
-            } ${r.City ? `(${r.City})` : ''}</p>
+            } ${r.City ? `(${r.City})` : ''} ${r.University ? `<a href="programs.html?uni=${encodeURIComponent(r.University)}" onclick="event.stopPropagation();" title="View graduate programs at this university" style="font-size:0.8em; color:var(--accent); text-decoration:none; margin-left:6px; font-weight:600;">🎓 Programs</a>` : ''}</p>
             <p><strong>Department:</strong> ${r.Department || ''}</p>
             <p><strong>Title:</strong> ${r.Title || ''}</p>
             <p><strong>Subject:</strong> ${r.Subject || ''}</p>

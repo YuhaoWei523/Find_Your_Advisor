@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Programs & Applications - Find Your Advisor</title>
+    <link rel="icon" type="image/jpeg" href="web_assets/logo.jpg">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --accent: #7c3aed;
+            --accent-hover: #6d28d9;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --border: #e2e8f0;
+            --bg-app: #f8fafc;
+            --bg-card: #ffffff;
+            --nav-bg: #0f172a;
+            --nav-text: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-app);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--nav-bg);
+            padding: 12px 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            color: var(--nav-text);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .top-navbar h1 {
+            margin: 0;
+            font-size: 1.35em;
+            color: var(--nav-text);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .page-badge {
+            background: rgba(124, 58, 237, 0.25);
+            color: #c4b5fd;
+            border: 1px solid rgba(196, 181, 253, 0.4);
+            font-size: 0.65em;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .navbar-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* Standard Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.88em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 1px 2px rgba(37,99,235,0.2); }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(37,99,235,0.25); }
+        .btn-accent { background: var(--accent); color: white; box-shadow: 0 1px 2px rgba(124,58,237,0.2); }
+        .btn-accent:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(124,58,237,0.25); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 1.5px solid rgba(255,255,255,0.25); color: var(--nav-text); }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
+        .btn-action { background: #ffffff; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-action:hover { background: #f1f5f9; color: var(--text-main); }
+        .btn-cancel { background: #f1f5f9; border: 1px solid var(--border); color: var(--text-muted); }
+        .btn-cancel:hover { background: #e2e8f0; }
+
+        /* Container & Layout */
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px 32px 48px;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Metrics & Overview Banner */
+        .metrics-banner {
+            background: white;
+            border-radius: 16px;
+            padding: 20px 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .metric-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .metric-count-badge {
+            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            color: white;
+            font-weight: 800;
+            font-size: 1.1em;
+            padding: 6px 14px;
+            border-radius: 12px;
+            box-shadow: 0 3px 8px rgba(37,99,235,0.25);
+        }
+        .deadline-highlight-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.88em;
+            font-weight: 500;
+        }
+        .deadline-highlight-box.danger {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+        .deadline-highlight-box.warning {
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            color: #92400e;
+        }
+        .deadline-highlight-box.info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+        .countdown-badge {
+            background: white;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85em;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .pipeline-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.82em;
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+
+        /* Toolbar & Filters */
+        .toolbar {
+            background: white;
+            border-radius: 14px;
+            padding: 16px 20px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+        .search-bar-wrap {
+            flex: 1;
+            min-width: 280px;
+        }
+        .search-bar-wrap input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.92em;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .search-bar-wrap input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .filters-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            font-size: 0.88em;
+            color: var(--text-main);
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+        .filter-select:focus {
+            border-color: var(--primary);
+        }
+
+        /* Card Grid Layout */
+        .programs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 24px;
+        }
+        .program-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            border: 1px solid var(--border);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .program-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08);
+            border-color: #cbd5e1;
+        }
+        .program-card.urgent-border {
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .program-status-select {
+            width: 100%;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.88em;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .program-info-pill {
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+        }
+        .faculty-match-tag {
+            background: #eef2ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.76em;
+            font-weight: 600;
+        }
+
+        /* Table View */
+        .programs-table-container {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow-x: auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .programs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            text-align: left;
+        }
+        .programs-table th {
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            padding: 12px 14px;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Modal Overlay & Card */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal {
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 20px;
+            width: 680px;
+            max-width: 92%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            box-sizing: border-box;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 0.92rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navbar -->
+    <nav class="top-navbar">
+        <div style="display:flex; align-items:center;">
+            <img src="web_assets/logo.jpg" alt="Logo" style="height:40px; margin-right:14px; border-radius:8px;">
+            <h1>
+                Find Your Advisor
+                <span class="page-badge">🎓 Academic Programs</span>
+            </h1>
+        </div>
+        <div class="navbar-actions">
+            <a id="link-advisors" href="index.html" class="btn btn-outline" style="text-decoration:none;">👨‍🏫 Advisors / PIs</a>
+            <button class="btn btn-outline" onclick="openInstitutionModal()">🏛️ Institutions</button>
+            <button class="btn btn-accent" onclick="exportProgramsCSV()">📥 Export CSV</button>
+            <button class="btn btn-primary" onclick="openProgramModal()">➕ Add Program</button>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Metrics & Nearest Deadline Banner -->
+        <div class="metrics-banner">
+            <div class="metric-header">
+                <span id="metric-total-count" class="metric-count-badge">0 Programs</span>
+                <div id="metric-deadline-alert"></div>
+            </div>
+            <div id="metric-pipeline-counts" style="display:flex; flex-wrap:wrap; align-items:center;"></div>
+        </div>
+
+        <!-- Search & Filter Toolbar -->
+        <div class="toolbar">
+            <div class="search-bar-wrap">
+                <input type="text" id="search-program-input" placeholder="🔍 Search program name, department, university, target faculty, or notes...">
+            </div>
+            <div class="filters-wrap">
+                <select id="filter-degree" class="filter-select">
+                    <option value="">All Degrees</option>
+                    <option value="PhD">PhD</option>
+                    <option value="Direct PhD">Direct PhD</option>
+                    <option value="Master's">Master's</option>
+                    <option value="Postdoc">Postdoc</option>
+                    <option value="Fellowship">Fellowship</option>
+                </select>
+
+                <select id="filter-status" class="filter-select">
+                    <option value="">All Stages</option>
+                    <option value="Considering">💡 Considering</option>
+                    <option value="Preparing Materials">📝 Preparing Materials</option>
+                    <option value="Submitted">🚀 Submitted</option>
+                    <option value="Interviewing">🎤 Interviewing</option>
+                    <option value="Accepted / Offer">🏆 Accepted / Offer</option>
+                    <option value="Waitlisted">⏳ Waitlisted</option>
+                    <option value="Rejected">❌ Rejected</option>
+                </select>
+
+                <select id="filter-country" class="filter-select">
+                    <option value="">All Countries</option>
+                </select>
+
+                <select id="filter-deadline" class="filter-select">
+                    <option value="">All Deadlines</option>
+                    <option value="upcoming_30">⏰ Next 30 Days</option>
+                    <option value="upcoming_60">📅 Next 60 Days</option>
+                    <option value="future">🔮 Future (> 60 Days)</option>
+                    <option value="passed">📁 Passed Deadlines</option>
+                </select>
+
+                <select id="sort-programs" class="filter-select">
+                    <option value="deadline_asc">⏳ Deadline (Soonest first)</option>
+                    <option value="deadline_desc">⏳ Deadline (Latest first)</option>
+                    <option value="uni_asc">🏛️ University (A-Z)</option>
+                    <option value="name_asc">🎓 Program Name (A-Z)</option>
+                    <option value="status">📊 Status / Stage</option>
+                </select>
+
+                <div style="display: flex; gap: 4px; border-left: 1px solid var(--border); padding-left: 10px;">
+                    <button id="view-cards-btn" class="btn btn-primary" onclick="setViewMode('cards')" title="Card Grid View" style="padding: 7px 11px;">🔲</button>
+                    <button id="view-table-btn" class="btn btn-action" onclick="setViewMode('table')" title="Spreadsheet Table View" style="padding: 7px 11px;">📋</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Counter -->
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85em; color:var(--text-muted); font-weight:600; padding: 0 4px;">
+            <span id="programs-count-badge">Loading programs...</span>
+        </div>
+
+        <!-- Cards View Container -->
+        <div id="programs-cards-container" class="programs-grid"></div>
+
+        <!-- Table View Container -->
+        <div id="programs-table-container" class="programs-table-container" style="display:none;">
+            <table class="programs-table">
+                <thead>
+                    <tr>
+                        <th style="width: 180px;">University</th>
+                        <th style="width: 220px;">Program & Degree</th>
+                        <th style="width: 180px;">Department</th>
+                        <th style="width: 160px;">Application Status</th>
+                        <th style="width: 140px;">Deadline</th>
+                        <th style="width: 150px;">Requirements</th>
+                        <th>Faculty & PIs</th>
+                        <th style="width: 130px; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="programs-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add / Edit Program Modal -->
+    <div class="modal-overlay" id="program-modal">
+        <div class="modal">
+            <h2 id="program-modal-title" style="margin: 0 0 16px 0; font-size: 1.35em; color: var(--text-main);">➕ Add New Program</h2>
+            <input type="hidden" id="prog-id">
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="margin-bottom:0;">University / Institution (Required) *</label>
+                    <button type="button" onclick="openInstitutionModal()" style="background:none; border:none; color:var(--primary); font-size:0.82em; font-weight:600; cursor:pointer;" title="Add new university if not in list">➕ New Institution</button>
+                </div>
+                <select id="prog-university" required></select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px;">
+                <div class="form-group">
+                    <label>Program Name (Required) *</label>
+                    <input type="text" id="prog-name" placeholder="e.g. Computer Science PhD" required>
+                </div>
+                <div class="form-group">
+                    <label>Degree Type</label>
+                    <select id="prog-degree">
+                        <option value="PhD">PhD</option>
+                        <option value="Direct PhD">Direct PhD</option>
+                        <option value="Master's">Master's</option>
+                        <option value="Postdoc">Postdoc</option>
+                        <option value="Fellowship">Fellowship</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Department / School</label>
+                <input type="text" id="prog-department" placeholder="e.g. Department of Computer Science & Artificial Intelligence">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                    <label>Application Deadline</label>
+                    <input type="date" id="prog-deadline">
+                </div>
+                <div class="form-group">
+                    <label>Application Fee</label>
+                    <input type="text" id="prog-fee" placeholder="e.g. $90 or Waived">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                    <label>GRE Requirement</label>
+                    <select id="prog-gre">
+                        <option value="Not Required">Not Required</option>
+                        <option value="Optional">Optional</option>
+                        <option value="Required">Required</option>
+                        <option value="Not Accepted">Not Accepted</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>English Requirement (TOEFL / IELTS)</label>
+                    <input type="text" id="prog-english" placeholder="e.g. TOEFL 100+ / IELTS 7.5">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <div class="form-group">
+                    <label>Application Status / Pipeline</label>
+                    <select id="prog-status">
+                        <option value="Considering">💡 Considering</option>
+                        <option value="Preparing Materials">📝 Preparing Materials</option>
+                        <option value="Submitted">🚀 Submitted</option>
+                        <option value="Interviewing">🎤 Interviewing</option>
+                        <option value="Accepted / Offer">🏆 Accepted / Offer</option>
+                        <option value="Waitlisted">⏳ Waitlisted</option>
+                        <option value="Rejected">❌ Rejected</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Application Portal URL</label>
+                    <input type="url" id="prog-portal" placeholder="https://apply.university.edu/...">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="margin-bottom:0;">Target Faculty / Matched Advisors</label>
+                    <button type="button" onclick="suggestPIsForModal()" style="background:none; border:none; color:var(--primary); font-size:0.82em; font-weight:600; cursor:pointer;" title="Suggest PIs from selected school">🔍 Suggest from School</button>
+                </div>
+                <input type="text" id="prog-faculty" placeholder="e.g. Prof. Dan Yamins, Prof. Surya Ganguli">
+            </div>
+
+            <div class="form-group">
+                <label>Notes & Application Strategy</label>
+                <textarea id="prog-notes" rows="3" placeholder="Notes on SOP focus, funding packages, potential lab rotations, interview dates, etc."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="closeProgramModal()">Cancel</button>
+                <button type="button" id="btn-save-program" class="btn btn-primary" onclick="saveProgram()">Save Program</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Institution Management Modal (Reused) -->
+    <div class="modal-overlay" id="institution-modal" style="display:none;">
+        <div class="modal" style="width: 880px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 28px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
+                <div>
+                    <h2 style="margin: 0 0 4px 0; font-size: 1.4em; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                        🏛️ Institution Management
+                    </h2>
+                    <p style="margin: 0; font-size: 0.88em; color: var(--text-muted);">
+                        Add, edit, or remove universities/institutions, manage geographic coordinates, and view affiliated researchers.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button id="toggle-add-uni-btn" class="btn btn-primary" onclick="toggleAddUniForm()" style="font-size: 0.85em; padding: 6px 14px;">➕ Add Institution</button>
+                    <button class="btn btn-cancel" onclick="closeInstitutionModal()" style="font-size: 0.85em; padding: 6px 12px;">✕ Close</button>
+                </div>
+            </div>
+
+            <div id="uni-form-card" style="display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 18px; margin-bottom: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 id="uni-form-title" style="margin: 0; font-size: 1.05em; color: var(--text-main); font-weight: 700;">➕ Add New Institution</h3>
+                    <span id="uni-form-hint" style="font-size: 0.82em; color: var(--text-muted);"></span>
+                </div>
+                <input type="hidden" id="uni-form-id">
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Institution / University Name *</label>
+                        <input type="text" id="uni-form-name" placeholder="e.g. Carnegie Mellon University" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Country / Region</label>
+                        <input type="text" id="uni-form-country" placeholder="e.g. USA, UK, Switzerland" list="countries-list" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                        <datalist id="countries-list">
+                            <option value="USA">
+                            <option value="UK">
+                            <option value="Canada">
+                            <option value="Switzerland">
+                            <option value="Germany">
+                            <option value="France">
+                            <option value="Netherlands">
+                            <option value="Sweden">
+                            <option value="Belgium">
+                            <option value="Austria">
+                            <option value="Israel">
+                            <option value="Singapore">
+                            <option value="China">
+                            <option value="Japan">
+                            <option value="Australia">
+                        </datalist>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 14px;">
+                    <div>
+                        <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Latitude</label>
+                        <input type="number" step="any" id="uni-form-lat" placeholder="e.g. 40.4433" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Longitude</label>
+                        <input type="number" step="any" id="uni-form-lon" placeholder="e.g. -79.9436" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <button type="button" id="uni-detect-coord-btn" class="btn btn-action" onclick="autoDetectCoordinates()" style="height: 38px; white-space: nowrap; font-size: 0.82em; padding: 0 12px;" title="Look up coordinates via OpenStreetMap Nominatim">🌐 Auto-Detect</button>
+                    </div>
+                </div>
+                
+                <div id="uni-sync-notice" style="display: none; background: #fef3c7; border: 1px solid #fde68a; color: #92400e; padding: 8px 12px; border-radius: 6px; font-size: 0.82em; margin-bottom: 12px;">
+                    ℹ️ Saving changes will automatically synchronize the university name and map coordinates for affiliated researchers.
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button class="btn btn-cancel" onclick="cancelUniForm()" style="font-size: 0.85em; padding: 6px 14px;">Cancel</button>
+                    <button id="uni-form-submit-btn" class="btn btn-primary" onclick="submitUniForm()" style="font-size: 0.85em; padding: 6px 16px;">Save Institution</button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <input type="text" id="uni-table-search" placeholder="🔍 Search institutions by name or country..." oninput="filterInstitutionsTable()" style="flex: 1; padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9em;">
+                <span id="uni-count-badge" style="font-size: 0.85em; color: var(--text-muted); font-weight: 600; white-space: nowrap;">0 institutions</span>
+            </div>
+
+            <div style="flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; max-height: 480px; background: white;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.88em; text-align: left;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; color: var(--text-muted); font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.05em;">
+                            <th style="padding: 10px 14px; font-weight: 700;">Institution</th>
+                            <th style="padding: 10px 12px; font-weight: 700; width: 110px;">Country</th>
+                            <th style="padding: 10px 12px; font-weight: 700; width: 140px;">Coordinates</th>
+                            <th style="padding: 10px 12px; font-weight: 700; width: 100px; text-align: center;">Researchers</th>
+                            <th style="padding: 10px 14px; font-weight: 700; width: 140px; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="institutions-table-body"></tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+                <button class="btn btn-primary" onclick="closeInstitutionModal()" style="font-size: 0.88em; padding: 6px 18px;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="web_assets/programs.js"></script>
+</body>
+</html>

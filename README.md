@@ -59,17 +59,25 @@ Applying for PhD or postdoctoral positions across academia (**Robotics, Quantum 
 - **Smart `@` Professor Mention Badges**: Type `@` in the journal to auto-suggest professors; creates interactive clickable pills that navigate directly to the professor's card and records bi-directional communication history.
 - **Global Batch Management**: Clean top-bar selection for single-click card editing and deletion.
 
-### 5. 🏛️ Institution & University Management (院校与机构管理)
+### 5. 🎓 Graduate Program & Application Tracker (学位项目与申请管理)
+- **Dedicated Program Workspace (`programs.html`)**: Track graduate degree programs (PhD, Direct PhD, Master's, Postdoc, Fellowship) organized by institution, department, and application deadline.
+- **Deadline Radar & Countdown Alert**: Dynamic deadline tracker with urgent alerts for deadlines within 7 and 30 days, plus visual indicators for upcoming/passed milestones.
+- **Dual Visual Modes**: Switch seamlessly between interactive **Card Grid View** (with quick 1-click status changers) and dense **Spreadsheet Table View**.
+- **Advisor Cross-Linking**: Automatically counts affiliated faculty from your database for each institution, displays matched target advisors, and provides 1-click navigation to view professor profiles.
+- **Application Requirements & Portal**: Track application fee, GRE requirements, language thresholds (TOEFL/IELTS), statement of purpose strategy notes, and direct official portal links.
+- **1-Click CSV Data Export**: Export all tracked programs to standard `.csv` for offline backup, spreadsheets, or sharing.
+
+### 6. 🏛️ Institution & University Management (院校与机构管理)
 - **Full CRUD Support**: Add new institutions, edit existing universities, or remove institutions directly from the UI.
 - **Auto-Geocoding**: Built-in OpenStreetMap Nominatim coordinate auto-detector (`🌐 Auto-Detect`) instantly finds latitude and longitude for any campus without manual coordinate lookup.
 - **Affiliated Researcher Synchronization**: Renaming an institution or updating its coordinates automatically synchronizes all linked faculty cards and map markers in real-time.
 - **Safe Deletion Guard**: Deleting an institution safely unlinks affiliated researcher profiles (clears university field while preserving all profile data, contact records, and notes).
 
-### 6. ⚡ Zero-Dependency Lightweight Architecture (零依赖架构)
+### 7. ⚡ Zero-Dependency Lightweight Architecture (零依赖架构)
 - **Vanilla Python Standard Library**: Built strictly using `http.server`, `sqlite3`, `urllib`, and `json`.
 - **Zero pip install required**: No Node.js, no Docker, no external database servers. Runs out of the box on Windows, macOS, and Linux.
 
-### 7. 🔒 100% Privacy & Local-First (数据私密性保证)
+### 8. 🔒 100% Privacy & Local-First (数据私密性保证)
 - Your contact history, personal ratings, and notes are stored strictly in a local SQLite file (`advisor.db` or legacy `neuroai.db`).
 - Nothing is uploaded to third-party clouds or telemetry servers.
 
