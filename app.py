@@ -88,6 +88,7 @@ def init_database_if_needed():
         university_id INTEGER,
         name TEXT NOT NULL,
         degree TEXT DEFAULT 'PhD',
+        rating INTEGER DEFAULT 0,
         department TEXT,
         deadline TEXT,
         app_fee TEXT,
@@ -110,6 +111,12 @@ def init_database_if_needed():
         FOREIGN KEY(university_id) REFERENCES universities(id) ON DELETE SET NULL
     )
     """)
+
+    # Auto-migration: check if programs table has rating column
+    cursor.execute("PRAGMA table_info(programs)")
+    prog_cols = [row[1] for row in cursor.fetchall()]
+    if 'rating' not in prog_cols:
+        cursor.execute("ALTER TABLE programs ADD COLUMN rating INTEGER DEFAULT 0")
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS logs (
@@ -171,19 +178,22 @@ def init_database_if_needed():
                     if uid:
                         cursor.execute("""
                         INSERT INTO programs (
-                            university_id, name, degree, department, deadline, app_fee,
-                            gre_requirement, english_requirement, status, portal_url,
-                            faculty_match, notes, toefl_det, requires_master,
-                            intl_student_stats, fee_waiver_info, letters_of_rec
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            university_id, name, degree, rating, department, discipline_tag,
+                            intl_waiver_type, intl_waiver_event, intl_waiver_link,
+                            deadline, app_fee, gre_requirement, english_requirement,
+                            toefl_det, requires_master, letters_of_rec, fee_waiver_info,
+                            intl_student_stats, status, portal_url, faculty_match, notes
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, (
-                            uid, p.get('name'), p.get('degree', 'PhD'), p.get('department'),
+                            uid, p.get('name'), p.get('degree', 'PhD'), p.get('rating', 0), p.get('department'),
+                            p.get('discipline_tag', ''), p.get('intl_waiver_type', 'Standard Paid (Domestic Waivers Only)'),
+                            p.get('intl_waiver_event', ''), p.get('intl_waiver_link', ''),
                             p.get('deadline'), p.get('app_fee'), p.get('gre_requirement', 'Not Required'),
-                            p.get('toefl_det', ''), p.get('status', 'Considering'), p.get('portal_url', ''),
-                            p.get('faculty_match', ''), p.get('notes', ''), p.get('toefl_det', ''),
+                            p.get('english_requirement', ''), p.get('toefl_det', ''),
                             p.get('requires_master', "No (Bachelor's eligible)"),
-                            p.get('intl_student_stats', ''), p.get('fee_waiver_info', ''),
-                            p.get('letters_of_rec', '3 letters required')
+                            p.get('letters_of_rec', '3 letters required'), p.get('fee_waiver_info', ''),
+                            p.get('intl_student_stats', ''), p.get('status', 'Considering'),
+                            p.get('portal_url', ''), p.get('faculty_match', ''), p.get('notes', '')
                         ))
                         seeded_p += 1
             conn.commit()
@@ -721,6 +731,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 p.intl_waiver_type,
                 p.intl_waiver_event,
                 p.intl_waiver_link,
+                p.rating,
                 p.created_at,
                 (SELECT COUNT(*) FROM researchers r WHERE r.university_id = p.university_id) as affiliated_pi_count
             FROM programs p
@@ -737,6 +748,22 @@ class RequestHandler(BaseHTTPRequestHandler):
         if status_filter and status_filter != 'All':
             query += " AND p.status = ?"
             sql_params.append(status_filter)
+
+        rating_filter = params.get('rating', [None])[0]
+        if rating_filter:
+            if rating_filter == '5':
+                query += " AND p.rating = 5"
+            elif rating_filter in ('4', '4+'):
+                query += " AND p.rating >= 4"
+            elif rating_filter in ('3', '3+'):
+                query += " AND p.rating >= 3"
+            elif rating_filter == 'unrated':
+                query += " AND (p.rating IS NULL OR p.rating = 0)"
+
+        uni_param = params.get('uni', [None])[0] or params.get('institute', [None])[0]
+        if uni_param:
+            query += " AND (LOWER(u.name) LIKE ? OR LOWER(p.name) LIKE ?)"
+            sql_params.extend([f"%{uni_param.lower()}%", f"%{uni_param.lower()}%"])
 
         discipline_filter = params.get('discipline', [None])[0]
         if discipline_filter and discipline_filter != 'All':
@@ -775,6 +802,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         name = (data.get('name') or '').strip()
         university_id = data.get('university_id')
         degree = (data.get('degree') or 'PhD').strip()
+        rating = int(data.get('rating') or 0)
         department = (data.get('department') or '').strip()
         deadline = (data.get('deadline') or '').strip()
         app_fee = (data.get('app_fee') or '').strip()
@@ -805,14 +833,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO programs (
-                university_id, name, degree, department, deadline, app_fee,
+                university_id, name, degree, rating, department, deadline, app_fee,
                 gre_requirement, english_requirement, status, portal_url,
                 faculty_match, notes, toefl_det, requires_master,
                 intl_student_stats, fee_waiver_info, letters_of_rec,
                 discipline_tag, intl_waiver_type, intl_waiver_event, intl_waiver_link
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            int(university_id), name, degree, department, deadline, app_fee,
+            int(university_id), name, degree, rating, department, deadline, app_fee,
             gre_requirement, english_requirement, status, portal_url,
             faculty_match, notes, toefl_det, requires_master,
             intl_student_stats, fee_waiver_info, letters_of_rec,
@@ -833,54 +861,43 @@ class RequestHandler(BaseHTTPRequestHandler):
         data = json.loads(post_data.decode('utf-8'))
         
         p_id = data.get('id')
-        name = (data.get('name') or '').strip()
-        university_id = data.get('university_id')
-        degree = (data.get('degree') or 'PhD').strip()
-        department = (data.get('department') or '').strip()
-        deadline = (data.get('deadline') or '').strip()
-        app_fee = (data.get('app_fee') or '').strip()
-        gre_requirement = (data.get('gre_requirement') or 'Not Required').strip()
-        english_requirement = (data.get('english_requirement') or '').strip()
-        status = (data.get('status') or 'Considering').strip()
-        portal_url = (data.get('portal_url') or '').strip()
-        faculty_match = (data.get('faculty_match') or '').strip()
-        notes = (data.get('notes') or '').strip()
-        toefl_det = (data.get('toefl_det') or '').strip()
-        requires_master = (data.get('requires_master') or '').strip()
-        intl_student_stats = (data.get('intl_student_stats') or '').strip()
-        fee_waiver_info = (data.get('fee_waiver_info') or '').strip()
-        letters_of_rec = (data.get('letters_of_rec') or '').strip()
-        discipline_tag = (data.get('discipline_tag') or '').strip()
-        intl_waiver_type = (data.get('intl_waiver_type') or '').strip()
-        intl_waiver_event = (data.get('intl_waiver_event') or '').strip()
-        intl_waiver_link = (data.get('intl_waiver_link') or '').strip()
-        
-        if not p_id or not name or not university_id:
+        if not p_id:
             self.send_response(400)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.end_headers()
-            self.wfile.write(json.dumps({'error': 'ID, Program name, and University are required'}).encode('utf-8'))
+            self.wfile.write(json.dumps({'error': 'Program ID is required'}).encode('utf-8'))
             return
 
+        allowed_fields = [
+            'university_id', 'name', 'degree', 'department', 'deadline', 'app_fee',
+            'gre_requirement', 'english_requirement', 'status', 'portal_url',
+            'faculty_match', 'notes', 'toefl_det', 'requires_master',
+            'intl_student_stats', 'fee_waiver_info', 'letters_of_rec',
+            'discipline_tag', 'intl_waiver_type', 'intl_waiver_event', 'intl_waiver_link',
+            'rating'
+        ]
+        
+        set_clauses = []
+        params = []
+        for field in allowed_fields:
+            if field in data:
+                val = data[field]
+                if field in ('university_id', 'rating') and val is not None and val != '':
+                    val = int(val)
+                set_clauses.append(f"{field} = ?")
+                params.append(val)
+                
+        if not set_clauses:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': 'No valid fields provided for update'}).encode('utf-8'))
+            return
+            
+        params.append(int(p_id))
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE programs SET 
-                university_id = ?, name = ?, degree = ?, department = ?,
-                deadline = ?, app_fee = ?, gre_requirement = ?,
-                english_requirement = ?, status = ?, portal_url = ?,
-                faculty_match = ?, notes = ?, toefl_det = ?,
-                requires_master = ?, intl_student_stats = ?,
-                fee_waiver_info = ?, letters_of_rec = ?,
-                discipline_tag = ?, intl_waiver_type = ?, intl_waiver_event = ?, intl_waiver_link = ?
-            WHERE id = ?
-        """, (
-            int(university_id), name, degree, department, deadline, app_fee,
-            gre_requirement, english_requirement, status, portal_url,
-            faculty_match, notes, toefl_det, requires_master,
-            intl_student_stats, fee_waiver_info, letters_of_rec,
-            discipline_tag, intl_waiver_type, intl_waiver_event, intl_waiver_link, int(p_id)
-        ))
+        cursor.execute(f"UPDATE programs SET {', '.join(set_clauses)} WHERE id = ?", tuple(params))
         conn.commit()
         conn.close()
         

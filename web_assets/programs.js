@@ -14,6 +14,8 @@ let currentViewMode = 'cards'; // 'cards' | 'table'
 // Active Filter State
 let selectedWaiver = '';
 let selectedDiscipline = '';
+let selectedRating = ''; // '' | '5' | '4+' | '3+' | 'unrated'
+let selectedUniversity = ''; // '' or specific university name
 
 // Status definitions and color themes
 const STATUS_CONFIG = {
@@ -25,6 +27,27 @@ const STATUS_CONFIG = {
     'Waitlisted': { color: '#c2410c', bg: '#ffedd5', border: '#fed7aa', label: '⏳ Waitlisted' },
     'Rejected': { color: '#991b1b', bg: '#fee2e2', border: '#fecaca', label: '❌ Rejected' }
 };
+
+// URL Sanitization: strip accidental trailing brackets, parentheses, or punctuation
+function sanitizeUrl(url) {
+    if (!url) return '';
+    let clean = String(url).trim();
+    clean = clean.replace(/[\]\)\>\.\,\;\'\"]+$/, '');
+    return clean;
+}
+
+// Robust deadline parser: extracts first YYYY-MM-DD pattern
+function parseProgramDeadline(deadlineStr) {
+    if (!deadlineStr) return null;
+    const match = deadlineStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return null;
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+    const d = new Date(year, month, day);
+    d.setHours(0, 0, 0, 0);
+    return isNaN(d.getTime()) ? null : d;
+}
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -41,7 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Check URL parameters for deep-linking
     const urlParams = new URLSearchParams(window.location.search);
-    const uniParam = urlParams.get('uni');
+    const uniParam = urlParams.get('uni') || urlParams.get('institute');
+    const ratingParam = urlParams.get('rating');
     const searchParam = urlParams.get('search');
     const degreeParam = urlParams.get('degree');
     const statusParam = urlParams.get('status');
@@ -49,9 +73,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const discParam = urlParams.get('discipline');
 
     if (uniParam) {
-        const searchInput = document.getElementById('search-program-input');
-        if (searchInput) searchInput.value = uniParam;
-    } else if (searchParam) {
+        selectUniversityFilter(uniParam);
+    }
+    if (ratingParam) {
+        selectRatingFilter(ratingParam);
+    }
+    if (searchParam) {
         const searchInput = document.getElementById('search-program-input');
         if (searchInput) searchInput.value = searchParam;
     }
@@ -66,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectDisciplineFilter(discParam);
     }
 
-    if (uniParam || searchParam || statusParam || waiverParam || discParam) {
+    if (uniParam || ratingParam || searchParam || statusParam || waiverParam || discParam) {
         renderPrograms();
     }
 });
@@ -101,7 +128,7 @@ async function loadPrograms() {
     const cardsContainer = document.getElementById('programs-cards-container');
     const tableBody = document.getElementById('programs-table-body');
     if (cardsContainer) cardsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#64748b;">⏳ Loading programs...</div>';
-    if (tableBody) tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 40px; color:#64748b;">⏳ Loading programs...</td></tr>';
+    if (tableBody) tableBody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 40px; color:#64748b;">⏳ Loading programs...</td></tr>';
 
     try {
         const res = await fetch(`${API_BASE}/programs`);
@@ -110,12 +137,13 @@ async function loadPrograms() {
         
         updateMetricsBanner();
         updateSidebarFilterCounts();
+        populateSidebarUniversities();
         renderPrograms();
     } catch (err) {
         console.error("Error loading programs:", err);
         const errMsg = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:#ef4444;">Error loading programs: ${err.message}</div>`;
         if (cardsContainer) cardsContainer.innerHTML = errMsg;
-        if (tableBody) tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 40px; color:#ef4444;">Error loading programs: ${err.message}</td></tr>`;
+        if (tableBody) tableBody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 40px; color:#ef4444;">Error loading programs: ${err.message}</td></tr>`;
     }
 }
 
@@ -151,6 +179,112 @@ function populateCountryFilter() {
 }
 
 // --- Sidebar Filter Selection Handlers ---
+function selectRatingFilter(val) {
+    selectedRating = val;
+    document.querySelectorAll('[id^="rating-pill-"]').forEach(el => el.classList.remove('active'));
+    if (!val) {
+        document.getElementById('rating-pill-all')?.classList.add('active');
+    } else if (val === '5') {
+        document.getElementById('rating-pill-5')?.classList.add('active');
+    } else if (val === '4' || val === '4+') {
+        document.getElementById('rating-pill-4')?.classList.add('active');
+    } else if (val === '3' || val === '3+') {
+        document.getElementById('rating-pill-3')?.classList.add('active');
+    } else if (val === 'unrated') {
+        document.getElementById('rating-pill-unrated')?.classList.add('active');
+    }
+    renderPrograms();
+}
+
+function selectUniversityFilter(uniName) {
+    selectedUniversity = uniName;
+    populateSidebarUniversities();
+    renderPrograms();
+}
+
+function filterSidebarUniversities() {
+    const q = (document.getElementById('filter-uni-search')?.value || '').toLowerCase().trim();
+    const items = document.querySelectorAll('.uni-sidebar-item');
+    items.forEach(item => {
+        const name = item.getAttribute('data-name') || '';
+        item.style.display = (!q || name.includes(q)) ? 'flex' : 'none';
+    });
+}
+
+function populateSidebarUniversities() {
+    const container = document.getElementById('sidebar-uni-list');
+    const badge = document.getElementById('uni-filter-count-badge');
+    if (!container) return;
+
+    const counts = {};
+    allPrograms.forEach(p => {
+        const u = p.university_name || 'Unknown University';
+        counts[u] = (counts[u] || 0) + 1;
+    });
+
+    const uniNames = Object.keys(counts).sort((a, b) => a.localeCompare(b));
+    if (badge) badge.innerText = `${uniNames.length} total`;
+
+    const totalPrograms = allPrograms.length;
+    let html = `
+        <div class="filter-pill ${!selectedUniversity ? 'active' : ''}" onclick="selectUniversityFilter('')" style="padding:6px 10px; font-size:0.82em; margin-bottom:2px;">
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">⚡ All Institutions</span>
+            <span class="filter-pill-count">${totalPrograms}</span>
+        </div>
+    `;
+
+    uniNames.forEach(name => {
+        const isActive = (selectedUniversity && selectedUniversity.toLowerCase() === name.toLowerCase());
+        html += `
+            <div class="filter-pill uni-sidebar-item ${isActive ? 'active' : ''}" data-name="${escapeHtml(name.toLowerCase())}" onclick="selectUniversityFilter('${escapeJs(name)}')" style="padding:6px 10px; font-size:0.82em; margin-bottom:2px;" title="${escapeHtml(name)}">
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:205px;">${escapeHtml(name)}</span>
+                <span class="filter-pill-count">${counts[name]}</span>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+// Star Rating Rendering and Interactive Updates
+function renderStarRating(ratingVal, progId) {
+    let html = '';
+    const r = ratingVal || 0;
+    for (let i = 1; i <= 5; i++) {
+        html += `<span class="star-rating-btn ${i <= r ? 'active' : ''}" data-prog-id="${progId}" data-val="${i}" onclick="event.stopPropagation(); setProgramRating(${progId}, ${i})">★</span>`;
+    }
+    return html;
+}
+
+async function setProgramRating(id, ratingVal) {
+    try {
+        const prog = allPrograms.find(p => p.id === id);
+        if (prog) prog.rating = ratingVal;
+
+        // Visual update in DOM
+        const containers = document.querySelectorAll(`.star-rating[data-id="${id}"]`);
+        containers.forEach(container => {
+            const stars = container.querySelectorAll('.star-rating-btn');
+            stars.forEach(s => {
+                const val = parseInt(s.getAttribute('data-val'), 10);
+                if (val <= ratingVal) s.classList.add('active');
+                else s.classList.remove('active');
+            });
+        });
+
+        updateSidebarFilterCounts();
+
+        // Background update
+        await fetch(`${API_BASE}/programs/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, rating: ratingVal })
+        });
+    } catch (err) {
+        console.error("Error setting rating:", err);
+    }
+}
+
 function selectWaiverFilter(waiverType) {
     selectedWaiver = waiverType;
     
@@ -201,6 +335,11 @@ function selectDisciplineFilter(disc) {
 function resetAllFilters() {
     selectedWaiver = '';
     selectedDiscipline = '';
+    selectedRating = '';
+    selectedUniversity = '';
+
+    document.querySelectorAll('[id^="rating-pill-"]').forEach(el => el.classList.remove('active'));
+    document.getElementById('rating-pill-all')?.classList.add('active');
 
     document.querySelectorAll('[id^="waiver-pill-"]').forEach(el => el.classList.remove('active'));
     document.getElementById('waiver-pill-all')?.classList.add('active');
@@ -211,14 +350,18 @@ function resetAllFilters() {
     const searchInput = document.getElementById('search-program-input');
     if (searchInput) searchInput.value = '';
 
+    const uniSearchInput = document.getElementById('filter-uni-search');
+    if (uniSearchInput) uniSearchInput.value = '';
+
     ['filter-master-req', 'filter-language-type', 'filter-letters-count', 'filter-deadline', 'filter-country', 'filter-status'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
 
     const sortEl = document.getElementById('sort-programs');
-    if (sortEl) sortEl.value = 'deadline_asc';
+    if (sortEl) sortEl.value = 'rating_desc';
 
+    populateSidebarUniversities();
     renderPrograms();
 }
 
@@ -230,6 +373,13 @@ function updateSidebarFilterCounts() {
         const el = document.getElementById(id);
         if (el) el.innerText = count;
     };
+
+    // Priority Rating Counts
+    setBadge('count-rating-all', total);
+    setBadge('count-rating-5', allPrograms.filter(p => (p.rating || 0) === 5).length);
+    setBadge('count-rating-4', allPrograms.filter(p => (p.rating || 0) >= 4).length);
+    setBadge('count-rating-3', allPrograms.filter(p => (p.rating || 0) >= 3).length);
+    setBadge('count-rating-unrated', allPrograms.filter(p => !p.rating || p.rating === 0).length);
 
     setBadge('count-waiver-all', total);
     setBadge('count-waiver-free', allPrograms.filter(p => (p.intl_waiver_type || '').includes('Free for All')).length);
@@ -280,15 +430,13 @@ function updateMetricsBanner() {
         today.setHours(0, 0, 0, 0);
 
         const upcoming = allPrograms
-            .filter(p => p.deadline && p.deadline.trim())
             .map(p => {
-                const parts = p.deadline.split('-');
-                const d = new Date(parts[0], parts[1] - 1, parts[2] || 1);
-                d.setHours(0, 0, 0, 0);
+                const d = parseProgramDeadline(p.deadline);
+                if (!d) return null;
                 const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
                 return { program: p, date: d, diffDays };
             })
-            .filter(item => item.diffDays >= 0)
+            .filter(item => item && item.diffDays >= 0)
             .sort((a, b) => a.diffDays - b.diffDays);
 
         if (upcoming.length > 0) {
@@ -316,6 +464,19 @@ function renderActiveChips() {
     if (!chipsContainer) return;
 
     const chips = [];
+
+    if (selectedRating) {
+        let label = '⭐ Priority: ' + selectedRating;
+        if (selectedRating === '5') label = '⭐⭐⭐⭐⭐ 5 Stars';
+        else if (selectedRating === '4' || selectedRating === '4+') label = '⭐⭐⭐⭐+ 4+ Stars';
+        else if (selectedRating === '3' || selectedRating === '3+') label = '⭐⭐⭐+ 3+ Stars';
+        else if (selectedRating === 'unrated') label = '⚪ Unrated';
+        chips.push({ label, onRemove: "selectRatingFilter('')" });
+    }
+
+    if (selectedUniversity) {
+        chips.push({ label: `🏛️ ${selectedUniversity}`, onRemove: "selectUniversityFilter('')" });
+    }
 
     if (selectedWaiver) {
         let label = 'Waiver: ' + selectedWaiver;
@@ -388,12 +549,30 @@ function getFilteredPrograms() {
     const statusVal = document.getElementById('filter-status')?.value || '';
     const countryVal = document.getElementById('filter-country')?.value || '';
     const deadlineVal = document.getElementById('filter-deadline')?.value || '';
-    const sortVal = document.getElementById('sort-programs')?.value || 'deadline_asc';
+    const sortVal = document.getElementById('sort-programs')?.value || 'rating_desc';
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     let filtered = allPrograms.filter(p => {
+        // Priority Rating filter
+        if (selectedRating) {
+            const r = p.rating || 0;
+            if (selectedRating === '5' && r !== 5) return false;
+            if ((selectedRating === '4' || selectedRating === '4+') && r < 4) return false;
+            if ((selectedRating === '3' || selectedRating === '3+') && r < 3) return false;
+            if (selectedRating === 'unrated' && r !== 0) return false;
+        }
+
+        // University / Institute filter
+        if (selectedUniversity) {
+            const selLower = selectedUniversity.toLowerCase();
+            const pUni = (p.university_name || '').toLowerCase();
+            if (pUni !== selLower && !pUni.includes(selLower) && !selLower.includes(pUni)) {
+                return false;
+            }
+        }
+
         // Search filter across all fields
         if (searchVal) {
             const matchName = (p.name || '').toLowerCase().includes(searchVal);
@@ -468,18 +647,19 @@ function getFilteredPrograms() {
         // Deadline filter
         if (deadlineVal) {
             if (!p.deadline) return false;
-            const parts = p.deadline.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2] || 1);
-            d.setHours(0, 0, 0, 0);
-            const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
-
-            if (deadlineVal === 'upcoming_30' && (diffDays < 0 || diffDays > 30)) return false;
-            if (deadlineVal === 'upcoming_60' && (diffDays < 0 || diffDays > 60)) return false;
-            if (deadlineVal === 'dec_1' && !p.deadline.includes('-12-01')) return false;
-            if (deadlineVal === 'dec_15' && !p.deadline.includes('-12-15')) return false;
-            if (deadlineVal === 'jan' && (!p.deadline.includes('-01-') && !p.deadline.includes('-01/'))) return false;
-            if (deadlineVal === 'future' && diffDays <= 60) return false;
-            if (deadlineVal === 'passed' && diffDays >= 0) return false;
+            const d = parseProgramDeadline(p.deadline);
+            if (!d) {
+                if (deadlineVal !== 'future') return false;
+            } else {
+                const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+                if (deadlineVal === 'upcoming_30' && (diffDays < 0 || diffDays > 30)) return false;
+                if (deadlineVal === 'upcoming_60' && (diffDays < 0 || diffDays > 60)) return false;
+                if (deadlineVal === 'dec_1' && !p.deadline.includes('-12-01')) return false;
+                if (deadlineVal === 'dec_15' && !p.deadline.includes('-12-15')) return false;
+                if (deadlineVal === 'jan' && (!p.deadline.includes('-01-') && !p.deadline.includes('-01/'))) return false;
+                if (deadlineVal === 'future' && diffDays <= 60) return false;
+                if (deadlineVal === 'passed' && diffDays >= 0) return false;
+            }
         }
 
         return true;
@@ -487,7 +667,17 @@ function getFilteredPrograms() {
 
     // Sorting
     filtered.sort((a, b) => {
-        if (sortVal === 'waiver_priority') {
+        if (sortVal === 'rating_desc') {
+            const rA = a.rating || 0;
+            const rB = b.rating || 0;
+            if (rB !== rA) return rB - rA;
+            const dA = parseProgramDeadline(a.deadline);
+            const dB = parseProgramDeadline(b.deadline);
+            if (!dA && !dB) return 0;
+            if (!dA) return 1;
+            if (!dB) return -1;
+            return dA - dB;
+        } else if (sortVal === 'waiver_priority') {
             const getPriority = (item) => {
                 const w = item.intl_waiver_type || '';
                 if (w.includes('Free for All')) return 1;
@@ -498,17 +688,26 @@ function getFilteredPrograms() {
             const pA = getPriority(a);
             const pB = getPriority(b);
             if (pA !== pB) return pA - pB;
-            if (!a.deadline) return 1;
-            if (!b.deadline) return -1;
-            return a.deadline.localeCompare(b.deadline);
+            const dA = parseProgramDeadline(a.deadline);
+            const dB = parseProgramDeadline(b.deadline);
+            if (!dA && !dB) return 0;
+            if (!dA) return 1;
+            if (!dB) return -1;
+            return dA - dB;
         } else if (sortVal === 'deadline_asc') {
-            if (!a.deadline) return 1;
-            if (!b.deadline) return -1;
-            return a.deadline.localeCompare(b.deadline);
+            const dA = parseProgramDeadline(a.deadline);
+            const dB = parseProgramDeadline(b.deadline);
+            if (!dA && !dB) return 0;
+            if (!dA) return 1;
+            if (!dB) return -1;
+            return dA - dB;
         } else if (sortVal === 'deadline_desc') {
-            if (!a.deadline) return 1;
-            if (!b.deadline) return -1;
-            return b.deadline.localeCompare(a.deadline);
+            const dA = parseProgramDeadline(a.deadline);
+            const dB = parseProgramDeadline(b.deadline);
+            if (!dA && !dB) return 0;
+            if (!dA) return 1;
+            if (!dB) return -1;
+            return dB - dA;
         } else if (sortVal === 'uni_asc') {
             return (a.university_name || '').localeCompare(b.university_name || '');
         } else if (sortVal === 'name_asc') {
@@ -570,23 +769,24 @@ function renderCardsView(programs) {
         let deadlineHtml = '<span style="color:#94a3b8; font-style:italic;">No deadline set</span>';
         let isUrgent = false;
         if (p.deadline) {
-            const parts = p.deadline.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2] || 1);
-            d.setHours(0, 0, 0, 0);
-            const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
-            
-            if (diffDays < 0) {
-                deadlineHtml = `<span style="color:#991b1b; font-weight:600;">📅 ${p.deadline} (Passed)</span>`;
-            } else if (diffDays === 0) {
-                deadlineHtml = `<span style="color:#dc2626; font-weight:700; animation: pulse 1.5s infinite;">📅 ${p.deadline} · Today!</span>`;
-                isUrgent = true;
-            } else if (diffDays <= 7) {
-                deadlineHtml = `<span style="color:#dc2626; font-weight:700;">📅 ${p.deadline} · ${diffDays} days left</span>`;
-                isUrgent = true;
-            } else if (diffDays <= 30) {
-                deadlineHtml = `<span style="color:#d97706; font-weight:600;">📅 ${p.deadline} · ${diffDays} days left</span>`;
+            const d = parseProgramDeadline(p.deadline);
+            if (d) {
+                const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+                if (diffDays < 0) {
+                    deadlineHtml = `<span style="color:#991b1b; font-weight:600;">📅 ${escapeHtml(p.deadline)} (Passed)</span>`;
+                } else if (diffDays === 0) {
+                    deadlineHtml = `<span style="color:#dc2626; font-weight:700; animation: pulse 1.5s infinite;">📅 ${escapeHtml(p.deadline)} · Today!</span>`;
+                    isUrgent = true;
+                } else if (diffDays <= 7) {
+                    deadlineHtml = `<span style="color:#dc2626; font-weight:700;">📅 ${escapeHtml(p.deadline)} · ${diffDays} days left</span>`;
+                    isUrgent = true;
+                } else if (diffDays <= 30) {
+                    deadlineHtml = `<span style="color:#d97706; font-weight:600;">📅 ${escapeHtml(p.deadline)} · ${diffDays} days left</span>`;
+                } else {
+                    deadlineHtml = `<span style="color:#15803d; font-weight:600;">📅 ${escapeHtml(p.deadline)} · ${diffDays} days left</span>`;
+                }
             } else {
-                deadlineHtml = `<span style="color:#15803d; font-weight:600;">📅 ${p.deadline} · ${diffDays} days left</span>`;
+                deadlineHtml = `<span style="color:#475569; font-weight:600;">📅 ${escapeHtml(p.deadline)}</span>`;
             }
         }
 
@@ -617,6 +817,7 @@ function renderCardsView(programs) {
         // Dedicated International Fee Waiver Callout
         let waiverCalloutHtml = '';
         const wType = p.intl_waiver_type || '';
+        const cleanWaiverLink = sanitizeUrl(p.intl_waiver_link);
         if (wType.includes('Virtual Info Session')) {
             waiverCalloutHtml = `
                 <div class="waiver-callout-card gold">
@@ -626,9 +827,9 @@ function renderCardsView(programs) {
                     <div class="waiver-event-title">
                         ${escapeHtml(p.intl_waiver_event || 'Attend virtual graduate showcase/webinar to receive free application fee waiver code.')}
                     </div>
-                    ${p.intl_waiver_link ? `
+                    ${cleanWaiverLink ? `
                         <div>
-                            <a href="${escapeHtml(p.intl_waiver_link)}" target="_blank" rel="noopener noreferrer" class="waiver-btn gold">
+                            <a href="${escapeHtml(cleanWaiverLink)}" target="_blank" rel="noopener noreferrer" class="waiver-btn gold">
                                 🔗 Register for Info Session / Get Code ↗
                             </a>
                         </div>
@@ -655,9 +856,9 @@ function renderCardsView(programs) {
                     <div style="font-size:0.83em; color:#1e3a8a;">
                         ${escapeHtml(p.intl_waiver_event || p.fee_waiver_info || 'International applicants eligible to request fee waiver via application portal based on financial need.')}
                     </div>
-                    ${p.intl_waiver_link ? `
+                    ${cleanWaiverLink ? `
                         <div>
-                            <a href="${escapeHtml(p.intl_waiver_link)}" target="_blank" rel="noopener noreferrer" class="waiver-btn blue">
+                            <a href="${escapeHtml(cleanWaiverLink)}" target="_blank" rel="noopener noreferrer" class="waiver-btn blue">
                                 Request Fee Waiver ↗
                             </a>
                         </div>
@@ -700,19 +901,26 @@ function renderCardsView(programs) {
             `;
         }
 
+        const cleanPortalUrl = sanitizeUrl(p.portal_url);
+
         return `
             <div class="program-card ${isUrgent ? 'urgent-border' : ''}" style="border-left: 5px solid ${statusCfg.color};">
-                <!-- University & Degree -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
-                    <div>
+                <!-- University & Degree & Priority Rating -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                    <div style="flex: 1; min-width: 0; padding-right: 8px;">
                         <span style="font-weight: 700; color: #1e293b; font-size: 1.05em; display: flex; align-items: center; gap: 6px;">
                             🏛️ ${escapeHtml(p.university_name || 'Unknown University')}
                         </span>
                         <span style="font-size: 0.78em; color: #64748b; font-weight: 600;">${escapeHtml(p.university_country || 'USA')}</span>
                     </div>
-                    <span style="${degreeBadgeStyle} padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 0.75em; text-transform: uppercase;">
-                        ${escapeHtml(p.degree || 'PhD')}
-                    </span>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;">
+                        <span style="${degreeBadgeStyle} padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 0.75em; text-transform: uppercase;">
+                            ${escapeHtml(p.degree || 'PhD')}
+                        </span>
+                        <div class="star-rating" data-id="${p.id}" ondblclick="event.stopPropagation(); setProgramRating(${p.id}, 0)" title="Click star to rate priority (1-5). Double-click to clear.">
+                            ${renderStarRating(p.rating || 0, p.id)}
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Discipline Tags -->
@@ -790,8 +998,8 @@ function renderCardsView(programs) {
                 <!-- Actions -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px; border-top: 1px solid #f1f5f9;">
                     <div>
-                        ${p.portal_url ? `
-                            <a href="${escapeHtml(p.portal_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-action" style="font-size: 0.8em; padding: 5px 10px; text-decoration:none;">
+                        ${cleanPortalUrl ? `
+                            <a href="${escapeHtml(cleanPortalUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-action" style="font-size: 0.8em; padding: 5px 10px; text-decoration:none;">
                                 🔗 Portal
                             </a>
                         ` : '<span style="font-size:0.8em; color:#cbd5e1;">No portal link</span>'}
@@ -817,7 +1025,7 @@ function renderTableView(programs) {
     if (!tableBody) return;
 
     if (programs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 40px; color:#94a3b8;">No matching programs found.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 40px; color:#94a3b8;">No matching programs found.</td></tr>';
         return;
     }
 
@@ -830,32 +1038,35 @@ function renderTableView(programs) {
 
         let deadlineText = p.deadline || '-';
         if (p.deadline) {
-            const parts = p.deadline.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2] || 1);
-            d.setHours(0, 0, 0, 0);
-            const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
-            if (diffDays < 0) deadlineText += ' (Passed)';
-            else if (diffDays === 0) deadlineText += ' (Today!)';
-            else deadlineText += ` (${diffDays}d)`;
+            const d = parseProgramDeadline(p.deadline);
+            if (d) {
+                const diffDays = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+                if (diffDays < 0) deadlineText += ' (Passed)';
+                else if (diffDays === 0) deadlineText += ' (Today!)';
+                else deadlineText += ` (${diffDays}d)`;
+            }
         }
 
         // Waiver badge
         let waiverCol = '<span style="color:#94a3b8;">Standard Paid</span>';
         const wType = p.intl_waiver_type || '';
+        const cleanWaiverLink = sanitizeUrl(p.intl_waiver_link);
         if (wType.includes('Virtual Info Session')) {
             waiverCol = `
                 <div style="font-weight:700; color:#b45309; font-size:0.86em;">🎟️ Info Session Code</div>
                 <div style="font-size:0.78em; color:#78350f;">${escapeHtml(p.intl_waiver_event || '')}</div>
-                ${p.intl_waiver_link ? `<a href="${escapeHtml(p.intl_waiver_link)}" target="_blank" class="source-link-badge">Register ↗</a>` : ''}
+                ${cleanWaiverLink ? `<a href="${escapeHtml(cleanWaiverLink)}" target="_blank" class="source-link-badge">Register ↗</a>` : ''}
             `;
         } else if (wType.includes('Free for All')) {
             waiverCol = '<span style="font-weight:700; color:#15803d; font-size:0.86em;">🎁 $0 Free for All</span>';
         } else if (wType.includes('Financial Hardship')) {
             waiverCol = `
                 <div style="font-weight:600; color:#1d4ed8; font-size:0.86em;">🤝 Hardship Waiver</div>
-                ${p.intl_waiver_link ? `<a href="${escapeHtml(p.intl_waiver_link)}" target="_blank" class="source-link-badge">Request ↗</a>` : ''}
+                ${cleanWaiverLink ? `<a href="${escapeHtml(cleanWaiverLink)}" target="_blank" class="source-link-badge">Request ↗</a>` : ''}
             `;
         }
+
+        const cleanPortalUrl = sanitizeUrl(p.portal_url);
 
         return `
             <tr>
@@ -868,6 +1079,11 @@ function renderTableView(programs) {
                     <div style="display:flex; gap:4px; margin-top:3px; flex-wrap:wrap;">
                         <span style="background:#e0e7ff; color:#3730a3; padding:1px 6px; border-radius:8px; font-size:0.75em; font-weight:700;">${escapeHtml(p.degree || 'PhD')}</span>
                         ${p.discipline_tag ? `<span style="font-size:0.75em; color:#64748b;">${escapeHtml(p.discipline_tag)}</span>` : ''}
+                    </div>
+                </td>
+                <td style="white-space: nowrap;">
+                    <div class="star-rating" data-id="${p.id}" ondblclick="event.stopPropagation(); setProgramRating(${p.id}, 0)" title="Click star to rate priority (1-5). Double-click to clear.">
+                        ${renderStarRating(p.rating || 0, p.id)}
                     </div>
                 </td>
                 <td style="color:#475569; font-size:0.85em;">${escapeHtml(p.department || '-')}</td>
@@ -891,7 +1107,7 @@ function renderTableView(programs) {
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
                     <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                        ${p.portal_url ? `<a href="${escapeHtml(p.portal_url)}" target="_blank" class="btn btn-action" style="padding: 4px 6px; font-size: 0.78em;" title="Open Portal">🔗</a>` : ''}
+                        ${cleanPortalUrl ? `<a href="${escapeHtml(cleanPortalUrl)}" target="_blank" class="btn btn-action" style="padding: 4px 6px; font-size: 0.78em;" title="Open Portal">🔗</a>` : ''}
                         <button class="btn btn-action" onclick="openProgramModal(${p.id})" style="padding: 4px 6px; font-size: 0.78em;" title="Edit">✏️</button>
                         <button class="btn btn-action" onclick="deleteProgram(${p.id}, '${escapeJs(p.name)}')" style="padding: 4px 6px; font-size: 0.78em; color:var(--danger);" title="Delete">🗑️</button>
                     </div>
@@ -901,13 +1117,20 @@ function renderTableView(programs) {
     }).join('');
 }
 
-// Helper to parse "Source: https://..." into clickable link
+// Helper to parse "Source: https://..." into clickable link without trailing punctuation
 function renderStatsWithSource(text) {
     if (!text) return '';
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return text.replace(urlRegex, (url) => {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="source-link-badge">Official Source ↗</a>`;
+    const sourceBlockRegex = /\[?(?:Source|Official Source)?:\s*(https?:\/\/[^\s\]\)\<\>"]+)\]?/gi;
+    let rendered = text.replace(sourceBlockRegex, (match, url) => {
+        const cleanUrl = sanitizeUrl(url);
+        return `<a href="${escapeHtml(cleanUrl)}" target="_blank" rel="noopener noreferrer" class="source-link-badge">Official Source ↗</a>`;
     });
+    const standaloneUrlRegex = /(https?:\/\/[^\s<>"'()[\]]+)/g;
+    rendered = rendered.replace(standaloneUrlRegex, (url) => {
+        const cleanUrl = sanitizeUrl(url);
+        return `<a href="${escapeHtml(cleanUrl)}" target="_blank" rel="noopener noreferrer" class="source-link-badge">Official Source ↗</a>`;
+    });
+    return rendered;
 }
 
 function setViewMode(mode) {
@@ -961,6 +1184,7 @@ function openProgramModal(id = null) {
         document.getElementById('prog-university').value = prog.university_id || '';
         document.getElementById('prog-name').value = prog.name || '';
         document.getElementById('prog-degree').value = prog.degree || 'PhD';
+        document.getElementById('prog-rating').value = String(prog.rating || 0);
         document.getElementById('prog-department').value = prog.department || '';
         document.getElementById('prog-discipline').value = prog.discipline_tag || '';
         document.getElementById('prog-waiver-type').value = prog.intl_waiver_type || 'Standard Paid (Domestic Waivers Only)';
@@ -984,6 +1208,7 @@ function openProgramModal(id = null) {
         document.getElementById('prog-university').value = '';
         document.getElementById('prog-name').value = '';
         document.getElementById('prog-degree').value = 'PhD';
+        document.getElementById('prog-rating').value = '0';
         document.getElementById('prog-department').value = '';
         document.getElementById('prog-discipline').value = '';
         document.getElementById('prog-waiver-type').value = 'Standard Paid (Domestic Waivers Only)';
@@ -1028,6 +1253,7 @@ async function saveProgram() {
         university_id: parseInt(university_id, 10),
         name,
         degree: document.getElementById('prog-degree').value,
+        rating: parseInt(document.getElementById('prog-rating')?.value || '0', 10),
         department: document.getElementById('prog-department').value.trim(),
         discipline_tag: document.getElementById('prog-discipline').value.trim(),
         intl_waiver_type: document.getElementById('prog-waiver-type').value,
@@ -1132,7 +1358,7 @@ function exportProgramsCSV() {
     }
 
     const headers = [
-        "University", "Country", "Program Name", "Degree", "Department",
+        "University", "Country", "Program Name", "Degree", "Priority Rating", "Department",
         "Discipline Tags", "International Waiver Type", "Waiver Event / Timeline", "Waiver Link",
         "Deadline", "Application Fee", "Letters of Rec", "TOEFL / DET Requirements",
         "Requires Master", "Application Status", "Portal URL", "Target Faculty", "Admissions Stats", "Notes"
@@ -1143,6 +1369,7 @@ function exportProgramsCSV() {
         p.university_country || '',
         p.name || '',
         p.degree || '',
+        p.rating || 0,
         p.department || '',
         p.discipline_tag || '',
         p.intl_waiver_type || '',

@@ -106,6 +106,7 @@ def init_database(db_path: str = DB_PATH):
         fee_waiver_info TEXT,
         intl_student_stats TEXT,
         status TEXT DEFAULT 'Considering',
+        rating INTEGER DEFAULT 0,
         portal_url TEXT,
         faculty_match TEXT,
         notes TEXT,
@@ -167,14 +168,14 @@ def init_database(db_path: str = DB_PATH):
 
                     cursor.execute("""
                     INSERT INTO programs (
-                        university_id, name, degree, department, discipline_tag,
+                        university_id, name, degree, rating, department, discipline_tag,
                         intl_waiver_type, intl_waiver_event, intl_waiver_link,
                         deadline, app_fee, gre_requirement, english_requirement,
                         toefl_det, requires_master, letters_of_rec, fee_waiver_info,
                         intl_student_stats, status, portal_url, faculty_match, notes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
-                        u_id, p.get('name'), p.get('degree', 'PhD'), p.get('department'),
+                        u_id, p.get('name'), p.get('degree', 'PhD'), p.get('rating', 0), p.get('department'),
                         p.get('discipline_tag', ''), p.get('intl_waiver_type', 'Standard Paid (Domestic Waivers Only)'),
                         p.get('intl_waiver_event', ''), p.get('intl_waiver_link', ''),
                         p.get('deadline'), p.get('app_fee'), p.get('gre_requirement', 'Not Required'),
