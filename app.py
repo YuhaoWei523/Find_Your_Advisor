@@ -732,6 +732,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 p.intl_waiver_event,
                 p.intl_waiver_link,
                 p.rating,
+                p.difficulty,
                 p.created_at,
                 (SELECT COUNT(*) FROM researchers r WHERE r.university_id = p.university_id) as affiliated_pi_count
             FROM programs p
@@ -751,14 +752,23 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         rating_filter = params.get('rating', [None])[0]
         if rating_filter:
-            if rating_filter == '5':
-                query += " AND p.rating = 5"
+            if rating_filter == 'unrated':
+                query += " AND (p.rating IS NULL OR p.rating = 0)"
+            elif rating_filter.isdigit():
+                query += " AND p.rating = ?"
+                sql_params.append(int(rating_filter))
             elif rating_filter in ('4', '4+'):
                 query += " AND p.rating >= 4"
             elif rating_filter in ('3', '3+'):
                 query += " AND p.rating >= 3"
-            elif rating_filter == 'unrated':
-                query += " AND (p.rating IS NULL OR p.rating = 0)"
+
+        diff_filter = params.get('difficulty', [None])[0] or params.get('tier', [None])[0]
+        if diff_filter and diff_filter != 'All':
+            if diff_filter.lower() == 'unassigned':
+                query += " AND (p.difficulty IS NULL OR p.difficulty = '')"
+            else:
+                query += " AND LOWER(p.difficulty) = ?"
+                sql_params.append(diff_filter.lower())
 
         uni_param = params.get('uni', [None])[0] or params.get('institute', [None])[0]
         if uni_param:
@@ -821,6 +831,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         intl_waiver_type = (data.get('intl_waiver_type') or '').strip()
         intl_waiver_event = (data.get('intl_waiver_event') or '').strip()
         intl_waiver_link = (data.get('intl_waiver_link') or '').strip()
+        difficulty = (data.get('difficulty') or '').strip()
         
         if not name or not university_id:
             self.send_response(400)
@@ -833,14 +844,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO programs (
-                university_id, name, degree, rating, department, deadline, app_fee,
+                university_id, name, degree, rating, difficulty, department, deadline, app_fee,
                 gre_requirement, english_requirement, status, portal_url,
                 faculty_match, notes, toefl_det, requires_master,
                 intl_student_stats, fee_waiver_info, letters_of_rec,
                 discipline_tag, intl_waiver_type, intl_waiver_event, intl_waiver_link
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            int(university_id), name, degree, rating, department, deadline, app_fee,
+            int(university_id), name, degree, rating, difficulty, department, deadline, app_fee,
             gre_requirement, english_requirement, status, portal_url,
             faculty_match, notes, toefl_det, requires_master,
             intl_student_stats, fee_waiver_info, letters_of_rec,
@@ -874,7 +885,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             'faculty_match', 'notes', 'toefl_det', 'requires_master',
             'intl_student_stats', 'fee_waiver_info', 'letters_of_rec',
             'discipline_tag', 'intl_waiver_type', 'intl_waiver_event', 'intl_waiver_link',
-            'rating'
+            'rating', 'difficulty'
         ]
         
         set_clauses = []

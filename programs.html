@@ -216,6 +216,21 @@
             border-color: #4ade80;
             color: #166534;
         }
+        .filter-pill.active.tier-reach {
+            background: #fee2e2;
+            border-color: #f87171;
+            color: #991b1b;
+        }
+        .filter-pill.active.tier-target {
+            background: #fef3c7;
+            border-color: #fbbf24;
+            color: #92400e;
+        }
+        .filter-pill.active.tier-safety {
+            background: #dcfce7;
+            border-color: #4ade80;
+            color: #166534;
+        }
         .filter-pill-count {
             background: #f1f5f9;
             color: #64748b;
@@ -235,6 +250,46 @@
         .filter-pill.active.green .filter-pill-count {
             background: #bbf7d0;
             color: #166534;
+        }
+        .filter-pill.active.tier-reach .filter-pill-count {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        .filter-pill.active.tier-target .filter-pill-count {
+            background: #fde68a;
+            color: #92400e;
+        }
+        .filter-pill.active.tier-safety .filter-pill-count {
+            background: #bbf7d0;
+            color: #166534;
+        }
+
+        /* Difficulty Tier Badges & Selector */
+        .tier-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.74em;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        .tier-badge.reach { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .tier-badge.target { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .tier-badge.safety { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .tier-badge.unassigned { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+
+        .program-difficulty-select {
+            width: 100%;
+            padding: 5px 8px;
+            border-radius: 8px;
+            font-size: 0.82em;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .filter-dropdown {
@@ -672,7 +727,7 @@
             </h1>
         </div>
         <div class="navbar-actions">
-            <a id="link-advisors" href="NeuroAI_Database.html" class="btn btn-outline" style="text-decoration:none;">👨‍🏫 Advisors / PIs</a>
+            <a id="link-advisors" href="index.html" class="btn btn-outline" style="text-decoration:none;">👨‍🏫 Advisors / PIs</a>
             <button class="btn btn-outline" onclick="openInstitutionModal()">🏛️ Institutions</button>
             <button class="btn btn-accent" onclick="exportProgramsCSV()">📥 Export CSV</button>
             <button class="btn btn-primary" onclick="openProgramModal()">➕ Add Program</button>
@@ -703,17 +758,52 @@
                     <span>⭐⭐⭐⭐⭐ 5 Stars</span>
                     <span class="filter-pill-count" id="count-rating-5">0</span>
                 </div>
-                <div class="filter-pill gold" id="rating-pill-4" onclick="selectRatingFilter('4+')">
-                    <span>⭐⭐⭐⭐+ 4+ Stars</span>
+                <div class="filter-pill gold" id="rating-pill-4" onclick="selectRatingFilter('4')">
+                    <span>⭐⭐⭐⭐ 4 Stars</span>
                     <span class="filter-pill-count" id="count-rating-4">0</span>
                 </div>
-                <div class="filter-pill gold" id="rating-pill-3" onclick="selectRatingFilter('3+')">
-                    <span>⭐⭐⭐+ 3+ Stars</span>
+                <div class="filter-pill gold" id="rating-pill-3" onclick="selectRatingFilter('3')">
+                    <span>⭐⭐⭐ 3 Stars</span>
                     <span class="filter-pill-count" id="count-rating-3">0</span>
+                </div>
+                <div class="filter-pill gold" id="rating-pill-2" onclick="selectRatingFilter('2')">
+                    <span>⭐⭐ 2 Stars</span>
+                    <span class="filter-pill-count" id="count-rating-2">0</span>
+                </div>
+                <div class="filter-pill gold" id="rating-pill-1" onclick="selectRatingFilter('1')">
+                    <span>⭐ 1 Star</span>
+                    <span class="filter-pill-count" id="count-rating-1">0</span>
                 </div>
                 <div class="filter-pill" id="rating-pill-unrated" onclick="selectRatingFilter('unrated')">
                     <span>⚪ Unrated</span>
                     <span class="filter-pill-count" id="count-rating-unrated">0</span>
+                </div>
+            </div>
+
+            <!-- Section 0.5: Difficulty Tier / Application Strategy -->
+            <div class="filter-section">
+                <div class="filter-section-title">
+                    <span>🎯 Difficulty Tier</span>
+                </div>
+                <div class="filter-pill active" id="diff-pill-all" onclick="selectDifficultyFilter('')">
+                    <span>🎯 All Tiers</span>
+                    <span class="filter-pill-count" id="count-diff-all">0</span>
+                </div>
+                <div class="filter-pill tier-reach" id="diff-pill-reach" onclick="selectDifficultyFilter('Reach')">
+                    <span>🔴 Reach (冲刺)</span>
+                    <span class="filter-pill-count" id="count-diff-reach">0</span>
+                </div>
+                <div class="filter-pill tier-target" id="diff-pill-target" onclick="selectDifficultyFilter('Target')">
+                    <span>🟡 Target (匹配)</span>
+                    <span class="filter-pill-count" id="count-diff-target">0</span>
+                </div>
+                <div class="filter-pill tier-safety" id="diff-pill-safety" onclick="selectDifficultyFilter('Safety')">
+                    <span>🟢 Safety (保底)</span>
+                    <span class="filter-pill-count" id="count-diff-safety">0</span>
+                </div>
+                <div class="filter-pill" id="diff-pill-unassigned" onclick="selectDifficultyFilter('unassigned')">
+                    <span>⚪ Unassigned (未分级)</span>
+                    <span class="filter-pill-count" id="count-diff-unassigned">0</span>
                 </div>
             </div>
 
@@ -903,6 +993,8 @@
                 <div class="toolbar-actions">
                     <select id="sort-programs" class="filter-dropdown" style="width: auto;" onchange="renderPrograms()">
                         <option value="rating_desc">⭐ Priority Rating (Highest first)</option>
+                        <option value="diff_reach">🎯 Difficulty (Reach → Safety)</option>
+                        <option value="diff_safety">🎯 Difficulty (Safety → Reach)</option>
                         <option value="deadline_asc">⏳ Deadline (Soonest first)</option>
                         <option value="deadline_desc">⏳ Deadline (Latest first)</option>
                         <option value="waiver_priority">🎟️ Free / Waiver First</option>
@@ -935,7 +1027,8 @@
                             <th style="width: 170px;">University</th>
                             <th style="width: 220px;">Program & Discipline</th>
                             <th style="width: 105px;">Priority</th>
-                            <th style="width: 150px;">Department</th>
+                            <th style="width: 120px;">Difficulty</th>
+                            <th style="width: 140px;">Department</th>
                             <th style="width: 130px;">Status</th>
                             <th style="width: 130px;">Deadline</th>
                             <th style="width: 200px;">International Fee Waiver & Event</th>
@@ -965,7 +1058,7 @@
                 <select id="prog-university" required></select>
             </div>
 
-            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px;">
+            <div style="display: grid; grid-template-columns: 2.2fr 1fr 1fr 1.2fr; gap: 12px;">
                 <div class="form-group">
                     <label>Program Name (Required) *</label>
                     <input type="text" id="prog-name" placeholder="e.g. Neuroscience PhD Program" required>
@@ -989,6 +1082,15 @@
                         <option value="3">⭐⭐⭐ 3 Stars</option>
                         <option value="2">⭐⭐ 2 Stars</option>
                         <option value="1">⭐ 1 Star</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Difficulty Tier</label>
+                    <select id="prog-difficulty">
+                        <option value="">⚪ Unassigned</option>
+                        <option value="Reach">🔴 Reach (冲刺)</option>
+                        <option value="Target">🟡 Target (匹配)</option>
+                        <option value="Safety">🟢 Safety (保底)</option>
                     </select>
                 </div>
             </div>

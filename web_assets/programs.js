@@ -14,8 +14,9 @@ let currentViewMode = 'cards'; // 'cards' | 'table'
 // Active Filter State
 let selectedWaiver = '';
 let selectedDiscipline = '';
-let selectedRating = ''; // '' | '5' | '4+' | '3+' | 'unrated'
+let selectedRating = ''; // '' | '5' | '4' | '3' | '2' | '1' | 'unrated'
 let selectedUniversity = ''; // '' or specific university name
+let selectedDifficulty = ''; // '' | 'Reach' | 'Target' | 'Safety' | 'unassigned'
 
 // Status definitions and color themes
 const STATUS_CONFIG = {
@@ -26,6 +27,14 @@ const STATUS_CONFIG = {
     'Accepted / Offer': { color: '#15803d', bg: '#dcfce7', border: '#86efac', label: '🏆 Accepted / Offer' },
     'Waitlisted': { color: '#c2410c', bg: '#ffedd5', border: '#fed7aa', label: '⏳ Waitlisted' },
     'Rejected': { color: '#991b1b', bg: '#fee2e2', border: '#fecaca', label: '❌ Rejected' }
+};
+
+// Difficulty Tier definitions and color themes
+const DIFFICULTY_CONFIG = {
+    'Reach': { color: '#991b1b', bg: '#fee2e2', border: '#fca5a5', badgeClass: 'reach', label: '🔴 Reach (冲刺)' },
+    'Target': { color: '#92400e', bg: '#fef3c7', border: '#fcd34d', badgeClass: 'target', label: '🟡 Target (匹配)' },
+    'Safety': { color: '#15803d', bg: '#dcfce7', border: '#86efac', badgeClass: 'safety', label: '🟢 Safety (保底)' },
+    '': { color: '#64748b', bg: '#f1f5f9', border: '#cbd5e1', badgeClass: 'unassigned', label: '⚪ Unassigned' }
 };
 
 // URL Sanitization: strip accidental trailing brackets, parentheses, or punctuation
@@ -71,12 +80,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statusParam = urlParams.get('status');
     const waiverParam = urlParams.get('waiver');
     const discParam = urlParams.get('discipline');
+    const diffParam = urlParams.get('difficulty') || urlParams.get('tier');
 
     if (uniParam) {
         selectUniversityFilter(uniParam);
     }
     if (ratingParam) {
         selectRatingFilter(ratingParam);
+    }
+    if (diffParam) {
+        selectDifficultyFilter(diffParam);
     }
     if (searchParam) {
         const searchInput = document.getElementById('search-program-input');
@@ -93,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         selectDisciplineFilter(discParam);
     }
 
-    if (uniParam || ratingParam || searchParam || statusParam || waiverParam || discParam) {
+    if (uniParam || ratingParam || diffParam || searchParam || statusParam || waiverParam || discParam) {
         renderPrograms();
     }
 });
@@ -190,10 +203,49 @@ function selectRatingFilter(val) {
         document.getElementById('rating-pill-4')?.classList.add('active');
     } else if (val === '3' || val === '3+') {
         document.getElementById('rating-pill-3')?.classList.add('active');
+    } else if (val === '2') {
+        document.getElementById('rating-pill-2')?.classList.add('active');
+    } else if (val === '1') {
+        document.getElementById('rating-pill-1')?.classList.add('active');
     } else if (val === 'unrated') {
         document.getElementById('rating-pill-unrated')?.classList.add('active');
     }
     renderPrograms();
+}
+
+function selectDifficultyFilter(tier) {
+    selectedDifficulty = tier;
+    document.querySelectorAll('[id^="diff-pill-"]').forEach(el => el.classList.remove('active'));
+    if (!tier) {
+        document.getElementById('diff-pill-all')?.classList.add('active');
+    } else if (tier.toLowerCase() === 'reach') {
+        document.getElementById('diff-pill-reach')?.classList.add('active');
+    } else if (tier.toLowerCase() === 'target') {
+        document.getElementById('diff-pill-target')?.classList.add('active');
+    } else if (tier.toLowerCase() === 'safety') {
+        document.getElementById('diff-pill-safety')?.classList.add('active');
+    } else if (tier.toLowerCase() === 'unassigned') {
+        document.getElementById('diff-pill-unassigned')?.classList.add('active');
+    }
+    renderPrograms();
+}
+
+async function quickUpdateProgramDifficulty(id, newDifficulty) {
+    try {
+        const prog = allPrograms.find(p => p.id === id);
+        if (prog) prog.difficulty = newDifficulty;
+
+        updateSidebarFilterCounts();
+        renderPrograms();
+
+        await fetch(`${API_BASE}/programs/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, difficulty: newDifficulty })
+        });
+    } catch (err) {
+        console.error("Error updating program difficulty:", err);
+    }
 }
 
 function selectUniversityFilter(uniName) {
@@ -337,9 +389,13 @@ function resetAllFilters() {
     selectedDiscipline = '';
     selectedRating = '';
     selectedUniversity = '';
+    selectedDifficulty = '';
 
     document.querySelectorAll('[id^="rating-pill-"]').forEach(el => el.classList.remove('active'));
     document.getElementById('rating-pill-all')?.classList.add('active');
+
+    document.querySelectorAll('[id^="diff-pill-"]').forEach(el => el.classList.remove('active'));
+    document.getElementById('diff-pill-all')?.classList.add('active');
 
     document.querySelectorAll('[id^="waiver-pill-"]').forEach(el => el.classList.remove('active'));
     document.getElementById('waiver-pill-all')?.classList.add('active');
@@ -377,9 +433,18 @@ function updateSidebarFilterCounts() {
     // Priority Rating Counts
     setBadge('count-rating-all', total);
     setBadge('count-rating-5', allPrograms.filter(p => (p.rating || 0) === 5).length);
-    setBadge('count-rating-4', allPrograms.filter(p => (p.rating || 0) >= 4).length);
-    setBadge('count-rating-3', allPrograms.filter(p => (p.rating || 0) >= 3).length);
+    setBadge('count-rating-4', allPrograms.filter(p => (p.rating || 0) === 4).length);
+    setBadge('count-rating-3', allPrograms.filter(p => (p.rating || 0) === 3).length);
+    setBadge('count-rating-2', allPrograms.filter(p => (p.rating || 0) === 2).length);
+    setBadge('count-rating-1', allPrograms.filter(p => (p.rating || 0) === 1).length);
     setBadge('count-rating-unrated', allPrograms.filter(p => !p.rating || p.rating === 0).length);
+
+    // Difficulty Tier Counts
+    setBadge('count-diff-all', total);
+    setBadge('count-diff-reach', allPrograms.filter(p => (p.difficulty || '').toLowerCase() === 'reach').length);
+    setBadge('count-diff-target', allPrograms.filter(p => (p.difficulty || '').toLowerCase() === 'target').length);
+    setBadge('count-diff-safety', allPrograms.filter(p => (p.difficulty || '').toLowerCase() === 'safety').length);
+    setBadge('count-diff-unassigned', allPrograms.filter(p => !p.difficulty || p.difficulty === '').length);
 
     setBadge('count-waiver-all', total);
     setBadge('count-waiver-free', allPrograms.filter(p => (p.intl_waiver_type || '').includes('Free for All')).length);
@@ -468,10 +533,22 @@ function renderActiveChips() {
     if (selectedRating) {
         let label = '⭐ Priority: ' + selectedRating;
         if (selectedRating === '5') label = '⭐⭐⭐⭐⭐ 5 Stars';
-        else if (selectedRating === '4' || selectedRating === '4+') label = '⭐⭐⭐⭐+ 4+ Stars';
-        else if (selectedRating === '3' || selectedRating === '3+') label = '⭐⭐⭐+ 3+ Stars';
+        else if (selectedRating === '4' || selectedRating === '4+') label = '⭐⭐⭐⭐ 4 Stars';
+        else if (selectedRating === '3' || selectedRating === '3+') label = '⭐⭐⭐ 3 Stars';
+        else if (selectedRating === '2') label = '⭐⭐ 2 Stars';
+        else if (selectedRating === '1') label = '⭐ 1 Star';
         else if (selectedRating === 'unrated') label = '⚪ Unrated';
         chips.push({ label, onRemove: "selectRatingFilter('')" });
+    }
+
+    if (selectedDifficulty) {
+        let label = '🎯 Difficulty: ' + selectedDifficulty;
+        const low = selectedDifficulty.toLowerCase();
+        if (low === 'reach') label = '🎯 🔴 Reach (冲刺)';
+        else if (low === 'target') label = '🎯 🟡 Target (匹配)';
+        else if (low === 'safety') label = '🎯 🟢 Safety (保底)';
+        else if (low === 'unassigned') label = '🎯 ⚪ Unassigned (未分级)';
+        chips.push({ label, onRemove: "selectDifficultyFilter('')" });
     }
 
     if (selectedUniversity) {
@@ -558,10 +635,27 @@ function getFilteredPrograms() {
         // Priority Rating filter
         if (selectedRating) {
             const r = p.rating || 0;
-            if (selectedRating === '5' && r !== 5) return false;
-            if ((selectedRating === '4' || selectedRating === '4+') && r < 4) return false;
-            if ((selectedRating === '3' || selectedRating === '3+') && r < 3) return false;
-            if (selectedRating === 'unrated' && r !== 0) return false;
+            if (selectedRating === 'unrated') {
+                if (r !== 0) return false;
+            } else if (selectedRating === '4+') {
+                if (r < 4) return false;
+            } else if (selectedRating === '3+') {
+                if (r < 3) return false;
+            } else {
+                const targetR = parseInt(selectedRating, 10);
+                if (r !== targetR) return false;
+            }
+        }
+
+        // Difficulty Tier filter
+        if (selectedDifficulty) {
+            const pDiff = (p.difficulty || '').toLowerCase();
+            const targetDiff = selectedDifficulty.toLowerCase();
+            if (targetDiff === 'unassigned') {
+                if (pDiff && pDiff !== 'unassigned') return false;
+            } else {
+                if (pDiff !== targetDiff) return false;
+            }
         }
 
         // University / Institute filter
@@ -677,6 +771,22 @@ function getFilteredPrograms() {
             if (!dA) return 1;
             if (!dB) return -1;
             return dA - dB;
+        } else if (sortVal === 'diff_reach') {
+            const tierOrder = { 'reach': 1, 'target': 2, 'safety': 3, '': 4 };
+            const ordA = tierOrder[(a.difficulty || '').toLowerCase()] || 4;
+            const ordB = tierOrder[(b.difficulty || '').toLowerCase()] || 4;
+            if (ordA !== ordB) return ordA - ordB;
+            const rA = a.rating || 0;
+            const rB = b.rating || 0;
+            return rB - rA;
+        } else if (sortVal === 'diff_safety') {
+            const tierOrder = { 'safety': 1, 'target': 2, 'reach': 3, '': 4 };
+            const ordA = tierOrder[(a.difficulty || '').toLowerCase()] || 4;
+            const ordB = tierOrder[(b.difficulty || '').toLowerCase()] || 4;
+            if (ordA !== ordB) return ordA - ordB;
+            const rA = a.rating || 0;
+            const rB = b.rating || 0;
+            return rB - rA;
         } else if (sortVal === 'waiver_priority') {
             const getPriority = (item) => {
                 const w = item.intl_waiver_type || '';
@@ -902,6 +1012,9 @@ function renderCardsView(programs) {
         }
 
         const cleanPortalUrl = sanitizeUrl(p.portal_url);
+        const diffKey = p.difficulty || '';
+        const diffCfg = DIFFICULTY_CONFIG[diffKey] || DIFFICULTY_CONFIG[''];
+        const difficultyBadgeHtml = diffKey ? `<span class="tier-badge ${diffCfg.badgeClass}">${diffCfg.label}</span>` : '';
 
         return `
             <div class="program-card ${isUrgent ? 'urgent-border' : ''}" style="border-left: 5px solid ${statusCfg.color};">
@@ -914,9 +1027,12 @@ function renderCardsView(programs) {
                         <span style="font-size: 0.78em; color: #64748b; font-weight: 600;">${escapeHtml(p.university_country || 'USA')}</span>
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;">
-                        <span style="${degreeBadgeStyle} padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 0.75em; text-transform: uppercase;">
-                            ${escapeHtml(p.degree || 'PhD')}
-                        </span>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <span style="${degreeBadgeStyle} padding: 3px 8px; border-radius: 12px; font-weight: 700; font-size: 0.75em; text-transform: uppercase;">
+                                ${escapeHtml(p.degree || 'PhD')}
+                            </span>
+                            ${difficultyBadgeHtml}
+                        </div>
                         <div class="star-rating" data-id="${p.id}" ondblclick="event.stopPropagation(); setProgramRating(${p.id}, 0)" title="Click star to rate priority (1-5). Double-click to clear.">
                             ${renderStarRating(p.rating || 0, p.id)}
                         </div>
@@ -936,13 +1052,23 @@ function renderCardsView(programs) {
                     ${escapeHtml(p.department || 'Department not specified')}
                 </div>
 
-                <!-- Status Selector -->
-                <div style="margin-bottom: 10px;">
-                    <select class="program-status-select" onchange="quickUpdateProgramStatus(${p.id}, this.value)" style="background: ${statusCfg.bg}; color: ${statusCfg.color}; border: 1px solid ${statusCfg.border};">
-                        ${Object.keys(STATUS_CONFIG).map(st => `
-                            <option value="${st}" ${st === statusKey ? 'selected' : ''}>${STATUS_CONFIG[st].label}</option>
-                        `).join('')}
-                    </select>
+                <!-- Status & Difficulty Selectors -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                    <div>
+                        <select class="program-status-select" onchange="quickUpdateProgramStatus(${p.id}, this.value)" style="background: ${statusCfg.bg}; color: ${statusCfg.color}; border: 1px solid ${statusCfg.border}; padding: 5px 8px; font-size: 0.82em;">
+                            ${Object.keys(STATUS_CONFIG).map(st => `
+                                <option value="${st}" ${st === statusKey ? 'selected' : ''}>${STATUS_CONFIG[st].label}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <select class="program-difficulty-select" onchange="quickUpdateProgramDifficulty(${p.id}, this.value)" style="background: ${diffCfg.bg}; color: ${diffCfg.color}; border: 1px solid ${diffCfg.border}; padding: 5px 8px; font-size: 0.82em;">
+                            <option value="" ${!diffKey ? 'selected' : ''}>⚪ Unassigned</option>
+                            <option value="Reach" ${diffKey.toLowerCase() === 'reach' ? 'selected' : ''}>🔴 Reach (冲刺)</option>
+                            <option value="Target" ${diffKey.toLowerCase() === 'target' ? 'selected' : ''}>🟡 Target (匹配)</option>
+                            <option value="Safety" ${diffKey.toLowerCase() === 'safety' ? 'selected' : ''}>🟢 Safety (保底)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Dedicated Fee Waiver Alert Banner -->
@@ -1025,7 +1151,7 @@ function renderTableView(programs) {
     if (!tableBody) return;
 
     if (programs.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 40px; color:#94a3b8;">No matching programs found.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 40px; color:#94a3b8;">No matching programs found.</td></tr>';
         return;
     }
 
@@ -1035,6 +1161,8 @@ function renderTableView(programs) {
     tableBody.innerHTML = programs.map(p => {
         const statusKey = p.status || 'Considering';
         const statusCfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG['Considering'];
+        const diffKey = p.difficulty || '';
+        const diffCfg = DIFFICULTY_CONFIG[diffKey] || DIFFICULTY_CONFIG[''];
 
         let deadlineText = p.deadline || '-';
         if (p.deadline) {
@@ -1085,6 +1213,14 @@ function renderTableView(programs) {
                     <div class="star-rating" data-id="${p.id}" ondblclick="event.stopPropagation(); setProgramRating(${p.id}, 0)" title="Click star to rate priority (1-5). Double-click to clear.">
                         ${renderStarRating(p.rating || 0, p.id)}
                     </div>
+                </td>
+                <td>
+                    <select class="program-difficulty-select" onchange="quickUpdateProgramDifficulty(${p.id}, this.value)" style="background: ${diffCfg.bg}; color: ${diffCfg.color}; border: 1px solid ${diffCfg.border}; padding: 4px 6px; font-size: 0.82em;">
+                        <option value="" ${!diffKey ? 'selected' : ''}>⚪ Unassigned</option>
+                        <option value="Reach" ${diffKey.toLowerCase() === 'reach' ? 'selected' : ''}>🔴 Reach</option>
+                        <option value="Target" ${diffKey.toLowerCase() === 'target' ? 'selected' : ''}>🟡 Target</option>
+                        <option value="Safety" ${diffKey.toLowerCase() === 'safety' ? 'selected' : ''}>🟢 Safety</option>
+                    </select>
                 </td>
                 <td style="color:#475569; font-size:0.85em;">${escapeHtml(p.department || '-')}</td>
                 <td>
@@ -1185,6 +1321,7 @@ function openProgramModal(id = null) {
         document.getElementById('prog-name').value = prog.name || '';
         document.getElementById('prog-degree').value = prog.degree || 'PhD';
         document.getElementById('prog-rating').value = String(prog.rating || 0);
+        document.getElementById('prog-difficulty').value = prog.difficulty || '';
         document.getElementById('prog-department').value = prog.department || '';
         document.getElementById('prog-discipline').value = prog.discipline_tag || '';
         document.getElementById('prog-waiver-type').value = prog.intl_waiver_type || 'Standard Paid (Domestic Waivers Only)';
@@ -1209,6 +1346,7 @@ function openProgramModal(id = null) {
         document.getElementById('prog-name').value = '';
         document.getElementById('prog-degree').value = 'PhD';
         document.getElementById('prog-rating').value = '0';
+        document.getElementById('prog-difficulty').value = '';
         document.getElementById('prog-department').value = '';
         document.getElementById('prog-discipline').value = '';
         document.getElementById('prog-waiver-type').value = 'Standard Paid (Domestic Waivers Only)';
@@ -1254,6 +1392,7 @@ async function saveProgram() {
         name,
         degree: document.getElementById('prog-degree').value,
         rating: parseInt(document.getElementById('prog-rating')?.value || '0', 10),
+        difficulty: (document.getElementById('prog-difficulty')?.value || '').trim(),
         department: document.getElementById('prog-department').value.trim(),
         discipline_tag: document.getElementById('prog-discipline').value.trim(),
         intl_waiver_type: document.getElementById('prog-waiver-type').value,
@@ -1358,7 +1497,7 @@ function exportProgramsCSV() {
     }
 
     const headers = [
-        "University", "Country", "Program Name", "Degree", "Priority Rating", "Department",
+        "University", "Country", "Program Name", "Degree", "Priority Rating", "Difficulty Tier", "Department",
         "Discipline Tags", "International Waiver Type", "Waiver Event / Timeline", "Waiver Link",
         "Deadline", "Application Fee", "Letters of Rec", "TOEFL / DET Requirements",
         "Requires Master", "Application Status", "Portal URL", "Target Faculty", "Admissions Stats", "Notes"
@@ -1370,6 +1509,7 @@ function exportProgramsCSV() {
         p.name || '',
         p.degree || '',
         p.rating || 0,
+        p.difficulty || 'Unassigned',
         p.department || '',
         p.discipline_tag || '',
         p.intl_waiver_type || '',
