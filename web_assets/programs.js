@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     setupEventListeners();
+    initSidebarResizer();
     await Promise.all([loadUniversities(), loadPrograms()]);
 
     // Check URL parameters for deep-linking
@@ -167,6 +168,97 @@ function setupEventListeners() {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => renderPrograms());
     });
+}
+
+// --- Draggable Resizable Sidebar with Persistence ---
+function initSidebarResizer() {
+    const sidebar = document.querySelector('.sidebar');
+    const resizer = document.getElementById('sidebar-resizer');
+    if (!sidebar || !resizer) return;
+
+    const STORAGE_KEY = 'programs_sidebar_width';
+    const DEFAULT_WIDTH = 330;
+    const MIN_WIDTH = 230;
+
+    // Restore saved width from localStorage if exists
+    try {
+        const savedWidth = localStorage.getItem(STORAGE_KEY);
+        if (savedWidth) {
+            const parsed = parseInt(savedWidth, 10);
+            const currentMax = Math.min(750, Math.floor(window.innerWidth * 0.65));
+            if (!isNaN(parsed) && parsed >= MIN_WIDTH && parsed <= currentMax) {
+                sidebar.style.width = `${parsed}px`;
+            }
+        }
+    } catch (e) {
+        console.warn("Could not read sidebar width from localStorage", e);
+    }
+
+    let isDragging = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    const onPointerDown = (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        
+        isDragging = true;
+        startX = e.clientX;
+        startWidth = sidebar.getBoundingClientRect().width;
+
+        resizer.classList.add('is-dragging');
+        document.body.classList.add('is-resizing-sidebar');
+
+        if (resizer.setPointerCapture && e.pointerId !== undefined) {
+            try { resizer.setPointerCapture(e.pointerId); } catch (_) {}
+        }
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+        e.preventDefault();
+    };
+
+    const onPointerMove = (e) => {
+        if (!isDragging) return;
+        const deltaX = e.clientX - startX;
+        let newWidth = startWidth + deltaX;
+
+        const currentMax = Math.min(750, Math.floor(window.innerWidth * 0.65));
+        newWidth = Math.max(MIN_WIDTH, Math.min(newWidth, currentMax));
+
+        sidebar.style.width = `${newWidth}px`;
+    };
+
+    const onPointerUp = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+
+        resizer.classList.remove('is-dragging');
+        document.body.classList.remove('is-resizing-sidebar');
+
+        if (resizer.releasePointerCapture && e.pointerId !== undefined) {
+            try { resizer.releasePointerCapture(e.pointerId); } catch (_) {}
+        }
+
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+
+        try {
+            const finalWidth = Math.round(sidebar.getBoundingClientRect().width);
+            localStorage.setItem(STORAGE_KEY, finalWidth);
+        } catch (_) {}
+    };
+
+    // Double-click on handle resets to default width
+    resizer.addEventListener('dblclick', () => {
+        sidebar.style.width = `${DEFAULT_WIDTH}px`;
+        try {
+            localStorage.setItem(STORAGE_KEY, DEFAULT_WIDTH);
+        } catch (_) {}
+    });
+
+    resizer.addEventListener('pointerdown', onPointerDown);
 }
 
 // --- Data Fetching ---
