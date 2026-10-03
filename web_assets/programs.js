@@ -29,13 +29,59 @@ const STATUS_CONFIG = {
     'Rejected': { color: '#991b1b', bg: '#fee2e2', border: '#fecaca', label: '❌ Rejected' }
 };
 
-// Difficulty Tier definitions and color themes
+// Difficulty Tier definitions and color themes (5 granular tiers + custom)
 const DIFFICULTY_CONFIG = {
-    'Reach': { color: '#991b1b', bg: '#fee2e2', border: '#fca5a5', badgeClass: 'reach', label: '🔴 Reach (冲刺)' },
-    'Target': { color: '#92400e', bg: '#fef3c7', border: '#fcd34d', badgeClass: 'target', label: '🟡 Target (匹配)' },
-    'Safety': { color: '#15803d', bg: '#dcfce7', border: '#86efac', badgeClass: 'safety', label: '🟢 Safety (保底)' },
-    '': { color: '#64748b', bg: '#f1f5f9', border: '#cbd5e1', badgeClass: 'unassigned', label: '⚪ Unassigned' }
+    'Super Reach': { color: '#991b1b', bg: '#fee2e2', border: '#fca5a5', badgeClass: 'tier-super-reach', label: '🔴 Super Reach (极限冲刺)' },
+    'High Reach': { color: '#c2410c', bg: '#ffedd5', border: '#fdba74', badgeClass: 'tier-high-reach', label: '🟠 High Reach (重点冲刺)' },
+    'Hard Target': { color: '#b45309', bg: '#fef3c7', border: '#fcd34d', badgeClass: 'tier-hard-target', label: '🟡 Hard Target (优势匹配)' },
+    'Target': { color: '#15803d', bg: '#dcfce7', border: '#86efac', badgeClass: 'tier-target', label: '🟢 Target (稳妥匹配)' },
+    'Safety': { color: '#1d4ed8', bg: '#eff6ff', border: '#93c5fd', badgeClass: 'tier-safety', label: '🔵 Safety (稳健保底)' },
+    '': { color: '#475569', bg: '#f1f5f9', border: '#cbd5e1', badgeClass: 'unassigned', label: '⚪ Unassigned' }
 };
+
+function getDifficultyMeta(tier) {
+    if (!tier) return DIFFICULTY_CONFIG[''];
+    if (DIFFICULTY_CONFIG[tier]) return DIFFICULTY_CONFIG[tier];
+    const lower = String(tier).toLowerCase().trim();
+    if (lower === 'super reach' || lower === 'reach') return DIFFICULTY_CONFIG['Super Reach'];
+    if (lower === 'high reach') return DIFFICULTY_CONFIG['High Reach'];
+    if (lower === 'hard target') return DIFFICULTY_CONFIG['Hard Target'];
+    if (lower === 'target') return DIFFICULTY_CONFIG['Target'];
+    if (lower === 'safety') return DIFFICULTY_CONFIG['Safety'];
+    if (lower === 'unassigned' || lower === '') return DIFFICULTY_CONFIG[''];
+
+    return {
+        color: '#6d28d9',
+        bg: '#ede9fe',
+        border: '#ddd6fe',
+        badgeClass: 'tier-custom',
+        label: `🟣 ${tier}`
+    };
+}
+
+function renderDifficultySelectOptions(currentDiff) {
+    const stdTiers = [
+        { val: 'Super Reach', label: '🔴 Super Reach' },
+        { val: 'High Reach', label: '🟠 High Reach' },
+        { val: 'Hard Target', label: '🟡 Hard Target' },
+        { val: 'Target', label: '🟢 Target' },
+        { val: 'Safety', label: '🔵 Safety' }
+    ];
+    let html = `<option value="" ${!currentDiff ? 'selected' : ''}>⚪ Unassigned</option>`;
+    let matched = !currentDiff;
+
+    stdTiers.forEach(t => {
+        const isSel = (currentDiff && currentDiff.toLowerCase() === t.val.toLowerCase());
+        if (isSel) matched = true;
+        html += `<option value="${t.val}" ${isSel ? 'selected' : ''}>${t.label}</option>`;
+    });
+
+    if (currentDiff && !matched) {
+        html += `<option value="${escapeHtml(currentDiff)}" selected>🟣 ${escapeHtml(currentDiff)}</option>`;
+    }
+    html += `<option value="__custom__">➕ Custom Tier...</option>`;
+    return html;
+}
 
 // URL Sanitization: strip accidental trailing brackets, parentheses, or punctuation
 function sanitizeUrl(url) {
@@ -216,21 +262,39 @@ function selectRatingFilter(val) {
 function selectDifficultyFilter(tier) {
     selectedDifficulty = tier;
     document.querySelectorAll('[id^="diff-pill-"]').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.custom-diff-pill').forEach(el => el.classList.remove('active'));
+
+    const lower = (tier || '').toLowerCase().trim();
     if (!tier) {
         document.getElementById('diff-pill-all')?.classList.add('active');
-    } else if (tier.toLowerCase() === 'reach') {
-        document.getElementById('diff-pill-reach')?.classList.add('active');
-    } else if (tier.toLowerCase() === 'target') {
+    } else if (lower === 'super reach' || lower === 'reach') {
+        document.getElementById('diff-pill-super-reach')?.classList.add('active');
+    } else if (lower === 'high reach') {
+        document.getElementById('diff-pill-high-reach')?.classList.add('active');
+    } else if (lower === 'hard target') {
+        document.getElementById('diff-pill-hard-target')?.classList.add('active');
+    } else if (lower === 'target') {
         document.getElementById('diff-pill-target')?.classList.add('active');
-    } else if (tier.toLowerCase() === 'safety') {
+    } else if (lower === 'safety') {
         document.getElementById('diff-pill-safety')?.classList.add('active');
-    } else if (tier.toLowerCase() === 'unassigned') {
+    } else if (lower === 'unassigned') {
         document.getElementById('diff-pill-unassigned')?.classList.add('active');
+    } else {
+        const customPill = document.querySelector(`.custom-diff-pill[data-tier="${escapeJs(tier)}"]`);
+        if (customPill) customPill.classList.add('active');
     }
     renderPrograms();
 }
 
 async function quickUpdateProgramDifficulty(id, newDifficulty) {
+    if (newDifficulty === '__custom__') {
+        const customName = prompt("Enter custom difficulty tier name (e.g. Dream Tier, Top 10, Safety+):");
+        if (!customName || !customName.trim()) {
+            renderPrograms();
+            return;
+        }
+        newDifficulty = customName.trim();
+    }
     try {
         const prog = allPrograms.find(p => p.id === id);
         if (prog) prog.difficulty = newDifficulty;
@@ -245,6 +309,26 @@ async function quickUpdateProgramDifficulty(id, newDifficulty) {
         });
     } catch (err) {
         console.error("Error updating program difficulty:", err);
+    }
+}
+
+function handleModalDifficultyChange(selectEl) {
+    if (!selectEl) return;
+    if (selectEl.value === '__custom__') {
+        const custom = prompt("Enter custom difficulty tier name (e.g. Dream Tier, Tier 1):");
+        if (custom && custom.trim()) {
+            const trimmed = custom.trim();
+            let opt = Array.from(selectEl.options).find(o => o.value.toLowerCase() === trimmed.toLowerCase());
+            if (!opt) {
+                opt = document.createElement('option');
+                opt.value = trimmed;
+                opt.innerText = `🟣 ${trimmed}`;
+                selectEl.insertBefore(opt, selectEl.lastElementChild);
+            }
+            selectEl.value = trimmed;
+        } else {
+            selectEl.value = '';
+        }
     }
 }
 
@@ -439,12 +523,47 @@ function updateSidebarFilterCounts() {
     setBadge('count-rating-1', allPrograms.filter(p => (p.rating || 0) === 1).length);
     setBadge('count-rating-unrated', allPrograms.filter(p => !p.rating || p.rating === 0).length);
 
-    // Difficulty Tier Counts
+    // Difficulty Tier Counts (5 granular tiers + custom)
     setBadge('count-diff-all', total);
-    setBadge('count-diff-reach', allPrograms.filter(p => (p.difficulty || '').toLowerCase() === 'reach').length);
-    setBadge('count-diff-target', allPrograms.filter(p => (p.difficulty || '').toLowerCase() === 'target').length);
-    setBadge('count-diff-safety', allPrograms.filter(p => (p.difficulty || '').toLowerCase() === 'safety').length);
-    setBadge('count-diff-unassigned', allPrograms.filter(p => !p.difficulty || p.difficulty === '').length);
+    setBadge('count-diff-super-reach', allPrograms.filter(p => {
+        const d = (p.difficulty || '').toLowerCase().trim();
+        return d === 'super reach' || d === 'reach';
+    }).length);
+    setBadge('count-diff-high-reach', allPrograms.filter(p => (p.difficulty || '').toLowerCase().trim() === 'high reach').length);
+    setBadge('count-diff-hard-target', allPrograms.filter(p => (p.difficulty || '').toLowerCase().trim() === 'hard target').length);
+    setBadge('count-diff-target', allPrograms.filter(p => (p.difficulty || '').toLowerCase().trim() === 'target').length);
+    setBadge('count-diff-safety', allPrograms.filter(p => (p.difficulty || '').toLowerCase().trim() === 'safety').length);
+    setBadge('count-diff-unassigned', allPrograms.filter(p => {
+        const d = (p.difficulty || '').toLowerCase().trim();
+        return !d || d === 'unassigned';
+    }).length);
+
+    // Dynamic Custom Tiers in Sidebar
+    const customListEl = document.getElementById('sidebar-custom-diff-list');
+    if (customListEl) {
+        const standardSet = new Set(['super reach', 'reach', 'high reach', 'hard target', 'target', 'safety', 'unassigned', '']);
+        const customCounts = {};
+        allPrograms.forEach(p => {
+            const raw = (p.difficulty || '').trim();
+            if (raw && !standardSet.has(raw.toLowerCase())) {
+                customCounts[raw] = (customCounts[raw] || 0) + 1;
+            }
+        });
+        const customTiers = Object.keys(customCounts).sort((a, b) => a.localeCompare(b));
+        if (customTiers.length === 0) {
+            customListEl.innerHTML = '';
+        } else {
+            customListEl.innerHTML = customTiers.map(t => {
+                const isActive = (selectedDifficulty && selectedDifficulty.toLowerCase().trim() === t.toLowerCase());
+                return `
+                    <div class="filter-pill custom-diff-pill ${isActive ? 'active tier-custom' : ''}" data-tier="${escapeHtml(t)}" onclick="selectDifficultyFilter('${escapeJs(t)}')">
+                        <span>🟣 ${escapeHtml(t)}</span>
+                        <span class="filter-pill-count">${customCounts[t]}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
 
     setBadge('count-waiver-all', total);
     setBadge('count-waiver-free', allPrograms.filter(p => (p.intl_waiver_type || '').includes('Free for All')).length);
@@ -543,11 +662,14 @@ function renderActiveChips() {
 
     if (selectedDifficulty) {
         let label = '🎯 Difficulty: ' + selectedDifficulty;
-        const low = selectedDifficulty.toLowerCase();
-        if (low === 'reach') label = '🎯 🔴 Reach (冲刺)';
-        else if (low === 'target') label = '🎯 🟡 Target (匹配)';
-        else if (low === 'safety') label = '🎯 🟢 Safety (保底)';
+        const low = selectedDifficulty.toLowerCase().trim();
+        if (low === 'super reach' || low === 'reach') label = '🎯 🔴 Super Reach (极限冲刺)';
+        else if (low === 'high reach') label = '🎯 🟠 High Reach (重点冲刺)';
+        else if (low === 'hard target') label = '🎯 🟡 Hard Target (优势匹配)';
+        else if (low === 'target') label = '🎯 🟢 Target (稳妥匹配)';
+        else if (low === 'safety') label = '🎯 🔵 Safety (稳健保底)';
         else if (low === 'unassigned') label = '🎯 ⚪ Unassigned (未分级)';
+        else label = `🎯 🟣 ${selectedDifficulty}`;
         chips.push({ label, onRemove: "selectDifficultyFilter('')" });
     }
 
@@ -649,10 +771,12 @@ function getFilteredPrograms() {
 
         // Difficulty Tier filter
         if (selectedDifficulty) {
-            const pDiff = (p.difficulty || '').toLowerCase();
-            const targetDiff = selectedDifficulty.toLowerCase();
+            const pDiff = (p.difficulty || '').toLowerCase().trim();
+            const targetDiff = selectedDifficulty.toLowerCase().trim();
             if (targetDiff === 'unassigned') {
                 if (pDiff && pDiff !== 'unassigned') return false;
+            } else if (targetDiff === 'super reach' || targetDiff === 'reach') {
+                if (pDiff !== 'super reach' && pDiff !== 'reach') return false;
             } else {
                 if (pDiff !== targetDiff) return false;
             }
@@ -772,17 +896,43 @@ function getFilteredPrograms() {
             if (!dB) return -1;
             return dA - dB;
         } else if (sortVal === 'diff_reach') {
-            const tierOrder = { 'reach': 1, 'target': 2, 'safety': 3, '': 4 };
-            const ordA = tierOrder[(a.difficulty || '').toLowerCase()] || 4;
-            const ordB = tierOrder[(b.difficulty || '').toLowerCase()] || 4;
+            const tierOrder = {
+                'super reach': 1,
+                'reach': 1,
+                'high reach': 2,
+                'hard target': 3,
+                'target': 4,
+                'safety': 5,
+                '': 7
+            };
+            const getOrder = (diff) => {
+                const d = (diff || '').toLowerCase().trim();
+                if (tierOrder[d] !== undefined) return tierOrder[d];
+                return 6;
+            };
+            const ordA = getOrder(a.difficulty);
+            const ordB = getOrder(b.difficulty);
             if (ordA !== ordB) return ordA - ordB;
             const rA = a.rating || 0;
             const rB = b.rating || 0;
             return rB - rA;
         } else if (sortVal === 'diff_safety') {
-            const tierOrder = { 'safety': 1, 'target': 2, 'reach': 3, '': 4 };
-            const ordA = tierOrder[(a.difficulty || '').toLowerCase()] || 4;
-            const ordB = tierOrder[(b.difficulty || '').toLowerCase()] || 4;
+            const tierOrder = {
+                'safety': 1,
+                'target': 2,
+                'hard target': 3,
+                'high reach': 4,
+                'super reach': 5,
+                'reach': 5,
+                '': 7
+            };
+            const getOrder = (diff) => {
+                const d = (diff || '').toLowerCase().trim();
+                if (tierOrder[d] !== undefined) return tierOrder[d];
+                return 6;
+            };
+            const ordA = getOrder(a.difficulty);
+            const ordB = getOrder(b.difficulty);
             if (ordA !== ordB) return ordA - ordB;
             const rA = a.rating || 0;
             const rB = b.rating || 0;
@@ -1013,8 +1163,8 @@ function renderCardsView(programs) {
 
         const cleanPortalUrl = sanitizeUrl(p.portal_url);
         const diffKey = p.difficulty || '';
-        const diffCfg = DIFFICULTY_CONFIG[diffKey] || DIFFICULTY_CONFIG[''];
-        const difficultyBadgeHtml = diffKey ? `<span class="tier-badge ${diffCfg.badgeClass}">${diffCfg.label}</span>` : '';
+        const diffCfg = getDifficultyMeta(diffKey);
+        const difficultyBadgeHtml = diffKey ? `<span class="tier-badge ${diffCfg.badgeClass}" onclick="event.stopPropagation(); quickPromptChangeDifficulty(${p.id}, '${escapeJs(diffKey)}')" style="cursor:pointer;" title="Click to change difficulty tier">${diffCfg.label}</span>` : '';
 
         return `
             <div class="program-card ${isUrgent ? 'urgent-border' : ''}" style="border-left: 5px solid ${statusCfg.color};">
@@ -1063,10 +1213,7 @@ function renderCardsView(programs) {
                     </div>
                     <div>
                         <select class="program-difficulty-select" onchange="quickUpdateProgramDifficulty(${p.id}, this.value)" style="background: ${diffCfg.bg}; color: ${diffCfg.color}; border: 1px solid ${diffCfg.border}; padding: 5px 8px; font-size: 0.82em;">
-                            <option value="" ${!diffKey ? 'selected' : ''}>⚪ Unassigned</option>
-                            <option value="Reach" ${diffKey.toLowerCase() === 'reach' ? 'selected' : ''}>🔴 Reach (冲刺)</option>
-                            <option value="Target" ${diffKey.toLowerCase() === 'target' ? 'selected' : ''}>🟡 Target (匹配)</option>
-                            <option value="Safety" ${diffKey.toLowerCase() === 'safety' ? 'selected' : ''}>🟢 Safety (保底)</option>
+                            ${renderDifficultySelectOptions(diffKey)}
                         </select>
                     </div>
                 </div>
@@ -1162,7 +1309,7 @@ function renderTableView(programs) {
         const statusKey = p.status || 'Considering';
         const statusCfg = STATUS_CONFIG[statusKey] || STATUS_CONFIG['Considering'];
         const diffKey = p.difficulty || '';
-        const diffCfg = DIFFICULTY_CONFIG[diffKey] || DIFFICULTY_CONFIG[''];
+        const diffCfg = getDifficultyMeta(diffKey);
 
         let deadlineText = p.deadline || '-';
         if (p.deadline) {
@@ -1216,10 +1363,7 @@ function renderTableView(programs) {
                 </td>
                 <td>
                     <select class="program-difficulty-select" onchange="quickUpdateProgramDifficulty(${p.id}, this.value)" style="background: ${diffCfg.bg}; color: ${diffCfg.color}; border: 1px solid ${diffCfg.border}; padding: 4px 6px; font-size: 0.82em;">
-                        <option value="" ${!diffKey ? 'selected' : ''}>⚪ Unassigned</option>
-                        <option value="Reach" ${diffKey.toLowerCase() === 'reach' ? 'selected' : ''}>🔴 Reach</option>
-                        <option value="Target" ${diffKey.toLowerCase() === 'target' ? 'selected' : ''}>🟡 Target</option>
-                        <option value="Safety" ${diffKey.toLowerCase() === 'safety' ? 'selected' : ''}>🟢 Safety</option>
+                        ${renderDifficultySelectOptions(diffKey)}
                     </select>
                 </td>
                 <td style="color:#475569; font-size:0.85em;">${escapeHtml(p.department || '-')}</td>
@@ -1321,7 +1465,17 @@ function openProgramModal(id = null) {
         document.getElementById('prog-name').value = prog.name || '';
         document.getElementById('prog-degree').value = prog.degree || 'PhD';
         document.getElementById('prog-rating').value = String(prog.rating || 0);
-        document.getElementById('prog-difficulty').value = prog.difficulty || '';
+        const diffSelect = document.getElementById('prog-difficulty');
+        const curDiff = prog.difficulty || '';
+        if (diffSelect) {
+            if (curDiff && !Array.from(diffSelect.options).some(o => o.value.toLowerCase() === curDiff.toLowerCase())) {
+                const opt = document.createElement('option');
+                opt.value = curDiff;
+                opt.innerText = `🟣 ${curDiff}`;
+                diffSelect.insertBefore(opt, diffSelect.lastElementChild);
+            }
+            diffSelect.value = curDiff;
+        }
         document.getElementById('prog-department').value = prog.department || '';
         document.getElementById('prog-discipline').value = prog.discipline_tag || '';
         document.getElementById('prog-waiver-type').value = prog.intl_waiver_type || 'Standard Paid (Domestic Waivers Only)';
@@ -1772,4 +1926,222 @@ function escapeHtml(str) {
 function escapeJs(str) {
     if (!str) return '';
     return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
+// --- Difficulty Tier Management & Batch Operations ---
+function openTierManagerModal() {
+    const modal = document.getElementById('tier-manager-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    renderTierManagerDistribution();
+    populateBatchUniSelect();
+    populateBatchRenameSource();
+}
+
+function closeTierManagerModal() {
+    const modal = document.getElementById('tier-manager-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function renderTierManagerDistribution() {
+    const grid = document.getElementById('tier-distribution-grid');
+    if (!grid) return;
+
+    const total = allPrograms.length || 1;
+    const counts = {
+        'Super Reach': 0,
+        'High Reach': 0,
+        'Hard Target': 0,
+        'Target': 0,
+        'Safety': 0,
+        'Unassigned': 0
+    };
+    const customCounts = {};
+
+    allPrograms.forEach(p => {
+        const raw = (p.difficulty || '').trim();
+        const lower = raw.toLowerCase();
+        if (!raw || lower === 'unassigned') {
+            counts['Unassigned']++;
+        } else if (lower === 'super reach' || lower === 'reach') {
+            counts['Super Reach']++;
+        } else if (lower === 'high reach') {
+            counts['High Reach']++;
+        } else if (lower === 'hard target') {
+            counts['Hard Target']++;
+        } else if (lower === 'target') {
+            counts['Target']++;
+        } else if (lower === 'safety') {
+            counts['Safety']++;
+        } else {
+            customCounts[raw] = (customCounts[raw] || 0) + 1;
+        }
+    });
+
+    const tierCards = [
+        { name: 'Super Reach', label: '🔴 Super Reach', count: counts['Super Reach'], color: '#991b1b', bg: '#fee2e2', border: '#fca5a5' },
+        { name: 'High Reach', label: '🟠 High Reach', count: counts['High Reach'], color: '#c2410c', bg: '#ffedd5', border: '#fdba74' },
+        { name: 'Hard Target', label: '🟡 Hard Target', count: counts['Hard Target'], color: '#b45309', bg: '#fef3c7', border: '#fcd34d' },
+        { name: 'Target', label: '🟢 Target', count: counts['Target'], color: '#15803d', bg: '#dcfce7', border: '#86efac' },
+        { name: 'Safety', label: '🔵 Safety', count: counts['Safety'], color: '#1d4ed8', bg: '#eff6ff', border: '#93c5fd' },
+        { name: 'Unassigned', label: '⚪ Unassigned', count: counts['Unassigned'], color: '#475569', bg: '#f1f5f9', border: '#cbd5e1' }
+    ];
+
+    Object.keys(customCounts).sort().forEach(t => {
+        tierCards.push({
+            name: t,
+            label: `🟣 ${t}`,
+            count: customCounts[t],
+            color: '#6d28d9',
+            bg: '#ede9fe',
+            border: '#ddd6fe'
+        });
+    });
+
+    grid.innerHTML = tierCards.map(tc => {
+        const pct = ((tc.count / total) * 100).toFixed(1);
+        return `
+            <div style="background: ${tc.bg}; border: 1.5px solid ${tc.border}; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: transform 0.15s ease;"
+                 onclick="closeTierManagerModal(); selectDifficultyFilter('${escapeJs(tc.name)}')"
+                 title="Click to view all ${escapeHtml(tc.name)} programs">
+                <div style="font-weight: 700; font-size: 0.86em; color: ${tc.color}; margin-bottom: 6px;">
+                    ${escapeHtml(tc.label)}
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <span style="font-size: 1.35em; font-weight: 800; color: ${tc.color};">${tc.count}</span>
+                    <span style="font-size: 0.78em; color: ${tc.color}; opacity: 0.85;">${pct}%</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function populateBatchUniSelect() {
+    const select = document.getElementById('batch-uni-select');
+    if (!select) return;
+
+    const uniCounts = {};
+    allPrograms.forEach(p => {
+        if (p.university_id) {
+            const uid = p.university_id;
+            const uname = p.university_name || 'University #' + uid;
+            if (!uniCounts[uid]) uniCounts[uid] = { id: uid, name: uname, count: 0 };
+            uniCounts[uid].count++;
+        }
+    });
+
+    const sorted = Object.values(uniCounts).sort((a, b) => a.name.localeCompare(b.name));
+    select.innerHTML = '<option value="">-- Select Institution --</option>' +
+        sorted.map(u => `<option value="${u.id}">${escapeHtml(u.name)} (${u.count} programs)</option>`).join('');
+}
+
+function populateBatchRenameSource() {
+    const select = document.getElementById('batch-rename-source');
+    if (!select) return;
+
+    const tiers = new Set();
+    allPrograms.forEach(p => {
+        const raw = (p.difficulty || '').trim();
+        if (raw) tiers.add(raw);
+    });
+
+    const sorted = Array.from(tiers).sort();
+    select.innerHTML = '<option value="">-- Select Source Tier --</option>' +
+        sorted.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+}
+
+async function applyBatchUniTier() {
+    const uniSelect = document.getElementById('batch-uni-select');
+    const tierSelect = document.getElementById('batch-tier-select');
+    if (!uniSelect || !tierSelect) return;
+
+    const uniId = parseInt(uniSelect.value, 10);
+    if (!uniId) {
+        alert("Please select an institution first.");
+        return;
+    }
+
+    let targetTier = tierSelect.value;
+    if (targetTier === '__custom__') {
+        const custom = prompt("Enter custom difficulty tier name (e.g. Dream Tier, Tier 1):");
+        if (!custom || !custom.trim()) return;
+        targetTier = custom.trim();
+    }
+
+    const uniObj = allUniversities.find(u => u.id === uniId);
+    const uniName = uniObj ? uniObj.name : `Institution #${uniId}`;
+
+    if (!confirm(`Are you sure you want to set all programs for "${uniName}" to "${targetTier || 'Unassigned'}"?`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/programs/batch-update-difficulty`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                university_id: uniId,
+                new_difficulty: targetTier
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Batch update failed");
+
+        alert(`Successfully updated ${data.affected_rows} program(s) for "${uniName}" to "${targetTier || 'Unassigned'}".`);
+        await loadPrograms();
+        renderTierManagerDistribution();
+        populateBatchRenameSource();
+    } catch (err) {
+        alert("Error applying batch difficulty: " + err.message);
+    }
+}
+
+async function applyRenameTier() {
+    const srcSelect = document.getElementById('batch-rename-source');
+    const targetInput = document.getElementById('batch-rename-target');
+    if (!srcSelect || !targetInput) return;
+
+    const oldTier = srcSelect.value;
+    const newTier = targetInput.value.trim();
+
+    if (!oldTier) {
+        alert("Please select a source tier to rename.");
+        return;
+    }
+    if (!newTier) {
+        alert("Please enter the new tier name.");
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to rename all "${oldTier}" programs to "${newTier}"?`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/programs/batch-update-difficulty`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                old_difficulty: oldTier,
+                new_difficulty: newTier
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Rename failed");
+
+        alert(`Successfully renamed ${data.affected_rows} program(s) from "${oldTier}" to "${newTier}".`);
+        targetInput.value = '';
+        await loadPrograms();
+        renderTierManagerDistribution();
+        populateBatchRenameSource();
+    } catch (err) {
+        alert("Error renaming tier: " + err.message);
+    }
+}
+
+function quickPromptChangeDifficulty(id, currentTier) {
+    const newTier = prompt(`Change difficulty tier for this program.\nCurrent: "${currentTier || 'Unassigned'}"\nOptions: Super Reach, High Reach, Hard Target, Target, Safety, or custom name:`, currentTier || '');
+    if (newTier !== null) {
+        quickUpdateProgramDifficulty(id, newTier.trim());
+    }
 }

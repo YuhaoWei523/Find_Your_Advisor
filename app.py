@@ -264,6 +264,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.handle_add_program()
         elif path == '/api/programs/update':
             self.handle_update_program()
+        elif path == '/api/programs/batch-update-difficulty':
+            self.handle_batch_update_difficulty()
         elif path == '/api/programs/delete':
             self.handle_delete_program()
         else:
@@ -916,6 +918,39 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.end_headers()
         self.wfile.write(json.dumps({'status': 'success'}).encode('utf-8'))
+
+    def handle_batch_update_difficulty(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data.decode('utf-8'))
+        
+        program_ids = data.get('program_ids', [])
+        university_id = data.get('university_id')
+        new_difficulty = (data.get('new_difficulty') if 'new_difficulty' in data else data.get('difficulty', '') or '').strip()
+        old_difficulty = data.get('old_difficulty')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        updated_count = 0
+        if program_ids:
+            placeholders = ', '.join(['?'] * len(program_ids))
+            cursor.execute(f"UPDATE programs SET difficulty = ? WHERE id IN ({placeholders})", [new_difficulty] + [int(pid) for pid in program_ids])
+            updated_count = cursor.rowcount
+        elif university_id:
+            cursor.execute("UPDATE programs SET difficulty = ? WHERE university_id = ?", (new_difficulty, int(university_id)))
+            updated_count = cursor.rowcount
+        elif old_difficulty:
+            cursor.execute("UPDATE programs SET difficulty = ? WHERE LOWER(difficulty) = LOWER(?)", (new_difficulty, old_difficulty.strip()))
+            updated_count = cursor.rowcount
+            
+        conn.commit()
+        conn.close()
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'success', 'updated_count': updated_count, 'affected_rows': updated_count}).encode('utf-8'))
 
     def handle_delete_program(self):
         content_length = int(self.headers.get('Content-Length', 0))

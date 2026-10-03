@@ -216,20 +216,35 @@
             border-color: #4ade80;
             color: #166534;
         }
-        .filter-pill.active.tier-reach {
+        .filter-pill.active.tier-super-reach {
             background: #fee2e2;
             border-color: #f87171;
             color: #991b1b;
         }
-        .filter-pill.active.tier-target {
+        .filter-pill.active.tier-high-reach {
+            background: #ffedd5;
+            border-color: #fb923c;
+            color: #c2410c;
+        }
+        .filter-pill.active.tier-hard-target {
             background: #fef3c7;
             border-color: #fbbf24;
-            color: #92400e;
+            color: #b45309;
         }
-        .filter-pill.active.tier-safety {
+        .filter-pill.active.tier-target {
             background: #dcfce7;
             border-color: #4ade80;
-            color: #166534;
+            color: #15803d;
+        }
+        .filter-pill.active.tier-safety {
+            background: #eff6ff;
+            border-color: #60a5fa;
+            color: #1d4ed8;
+        }
+        .filter-pill.active.tier-custom {
+            background: #ede9fe;
+            border-color: #a78bfa;
+            color: #6d28d9;
         }
         .filter-pill-count {
             background: #f1f5f9;
@@ -251,17 +266,29 @@
             background: #bbf7d0;
             color: #166534;
         }
-        .filter-pill.active.tier-reach .filter-pill-count {
+        .filter-pill.active.tier-super-reach .filter-pill-count {
             background: #fecaca;
             color: #991b1b;
         }
-        .filter-pill.active.tier-target .filter-pill-count {
+        .filter-pill.active.tier-high-reach .filter-pill-count {
+            background: #fed7aa;
+            color: #c2410c;
+        }
+        .filter-pill.active.tier-hard-target .filter-pill-count {
             background: #fde68a;
-            color: #92400e;
+            color: #b45309;
+        }
+        .filter-pill.active.tier-target .filter-pill-count {
+            background: #bbf7d0;
+            color: #15803d;
         }
         .filter-pill.active.tier-safety .filter-pill-count {
-            background: #bbf7d0;
-            color: #166534;
+            background: #bfdbfe;
+            color: #1d4ed8;
+        }
+        .filter-pill.active.tier-custom .filter-pill-count {
+            background: #ddd6fe;
+            color: #6d28d9;
         }
 
         /* Difficulty Tier Badges & Selector */
@@ -275,11 +302,19 @@
             font-size: 0.74em;
             letter-spacing: 0.02em;
             white-space: nowrap;
+            cursor: pointer;
+            transition: transform 0.15s ease;
         }
-        .tier-badge.reach { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .tier-badge.target { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
-        .tier-badge.safety { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .tier-badge:hover {
+            transform: scale(1.05);
+        }
+        .tier-badge.super-reach { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .tier-badge.high-reach { background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; }
+        .tier-badge.hard-target { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+        .tier-badge.target { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+        .tier-badge.safety { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
         .tier-badge.unassigned { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+        .tier-badge.custom { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
 
         .program-difficulty-select {
             width: 100%;
@@ -728,6 +763,7 @@
         </div>
         <div class="navbar-actions">
             <a id="link-advisors" href="index.html" class="btn btn-outline" style="text-decoration:none;">👨‍🏫 Advisors / PIs</a>
+            <button class="btn btn-outline" onclick="openTierManagerModal()" title="Manage difficulty tiering & batch assignment">🎯 Manage Tiers</button>
             <button class="btn btn-outline" onclick="openInstitutionModal()">🏛️ Institutions</button>
             <button class="btn btn-accent" onclick="exportProgramsCSV()">📥 Export CSV</button>
             <button class="btn btn-primary" onclick="openProgramModal()">➕ Add Program</button>
@@ -784,26 +820,38 @@
             <div class="filter-section">
                 <div class="filter-section-title">
                     <span>🎯 Difficulty Tier</span>
+                    <button type="button" class="sidebar-reset-btn" onclick="openTierManagerModal()" title="Manage & batch assign tiers" style="font-size:0.76em; padding:2px 6px;">⚙️ Manage</button>
                 </div>
                 <div class="filter-pill active" id="diff-pill-all" onclick="selectDifficultyFilter('')">
                     <span>🎯 All Tiers</span>
                     <span class="filter-pill-count" id="count-diff-all">0</span>
                 </div>
-                <div class="filter-pill tier-reach" id="diff-pill-reach" onclick="selectDifficultyFilter('Reach')">
-                    <span>🔴 Reach (冲刺)</span>
-                    <span class="filter-pill-count" id="count-diff-reach">0</span>
+                <div class="filter-pill tier-super-reach" id="diff-pill-super-reach" onclick="selectDifficultyFilter('Super Reach')">
+                    <span>🔴 Super Reach (极限冲刺)</span>
+                    <span class="filter-pill-count" id="count-diff-super-reach">0</span>
+                </div>
+                <div class="filter-pill tier-high-reach" id="diff-pill-high-reach" onclick="selectDifficultyFilter('High Reach')">
+                    <span>🟠 High Reach (重点冲刺)</span>
+                    <span class="filter-pill-count" id="count-diff-high-reach">0</span>
+                </div>
+                <div class="filter-pill tier-hard-target" id="diff-pill-hard-target" onclick="selectDifficultyFilter('Hard Target')">
+                    <span>🟡 Hard Target (优势匹配)</span>
+                    <span class="filter-pill-count" id="count-diff-hard-target">0</span>
                 </div>
                 <div class="filter-pill tier-target" id="diff-pill-target" onclick="selectDifficultyFilter('Target')">
-                    <span>🟡 Target (匹配)</span>
+                    <span>🟢 Target (稳妥匹配)</span>
                     <span class="filter-pill-count" id="count-diff-target">0</span>
                 </div>
                 <div class="filter-pill tier-safety" id="diff-pill-safety" onclick="selectDifficultyFilter('Safety')">
-                    <span>🟢 Safety (保底)</span>
+                    <span>🔵 Safety (稳健保底)</span>
                     <span class="filter-pill-count" id="count-diff-safety">0</span>
                 </div>
                 <div class="filter-pill" id="diff-pill-unassigned" onclick="selectDifficultyFilter('unassigned')">
                     <span>⚪ Unassigned (未分级)</span>
                     <span class="filter-pill-count" id="count-diff-unassigned">0</span>
+                </div>
+                <div id="sidebar-custom-diff-list" style="display: flex; flex-direction: column; gap: 4px;">
+                    <!-- Custom tiers dynamically rendered here -->
                 </div>
             </div>
 
@@ -993,8 +1041,8 @@
                 <div class="toolbar-actions">
                     <select id="sort-programs" class="filter-dropdown" style="width: auto;" onchange="renderPrograms()">
                         <option value="rating_desc">⭐ Priority Rating (Highest first)</option>
-                        <option value="diff_reach">🎯 Difficulty (Reach → Safety)</option>
-                        <option value="diff_safety">🎯 Difficulty (Safety → Reach)</option>
+                        <option value="diff_reach">🎯 Difficulty (Super Reach → Safety)</option>
+                        <option value="diff_safety">🎯 Difficulty (Safety → Super Reach)</option>
                         <option value="deadline_asc">⏳ Deadline (Soonest first)</option>
                         <option value="deadline_desc">⏳ Deadline (Latest first)</option>
                         <option value="waiver_priority">🎟️ Free / Waiver First</option>
@@ -1086,11 +1134,14 @@
                 </div>
                 <div class="form-group">
                     <label>Difficulty Tier</label>
-                    <select id="prog-difficulty">
+                    <select id="prog-difficulty" onchange="handleModalDifficultyChange(this)">
                         <option value="">⚪ Unassigned</option>
-                        <option value="Reach">🔴 Reach (冲刺)</option>
-                        <option value="Target">🟡 Target (匹配)</option>
-                        <option value="Safety">🟢 Safety (保底)</option>
+                        <option value="Super Reach">🔴 Super Reach (极限冲刺)</option>
+                        <option value="High Reach">🟠 High Reach (重点冲刺)</option>
+                        <option value="Hard Target">🟡 Hard Target (优势匹配)</option>
+                        <option value="Target">🟢 Target (稳妥匹配)</option>
+                        <option value="Safety">🔵 Safety (稳健保底)</option>
+                        <option value="__custom__">➕ Custom Tier...</option>
                     </select>
                 </div>
             </div>
@@ -1307,6 +1358,97 @@
 
             <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
                 <button class="btn btn-primary" onclick="closeInstitutionModal()" style="font-size: 0.88em; padding: 6px 18px;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Difficulty Tier Management & Batch Tools Modal -->
+    <div class="modal-overlay" id="tier-manager-modal" style="display:none;">
+        <div class="modal" style="width: 840px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 28px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
+                <div>
+                    <h2 style="margin: 0 0 4px 0; font-size: 1.4em; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                        🎯 Difficulty Tier Manager & Batch Adjustment
+                    </h2>
+                    <p style="margin: 0; font-size: 0.88em; color: var(--text-muted);">
+                        View tier distribution, batch-set difficulty by university, or rename/merge tiers across all 300+ programs.
+                    </p>
+                </div>
+                <button class="btn btn-cancel" onclick="closeTierManagerModal()" style="font-size: 0.85em; padding: 6px 12px;">✕ Close</button>
+            </div>
+
+            <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 20px;">
+                <!-- Section 1: Tier Distribution Overview -->
+                <div>
+                    <h3 style="margin: 0 0 10px 0; font-size: 0.95em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">
+                        📊 Current Tier Distribution
+                    </h3>
+                    <div id="tier-distribution-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+                        <!-- Dynamically filled by renderTierManagerDistribution() -->
+                    </div>
+                </div>
+
+                <!-- Section 2: Batch Assign by Institution -->
+                <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 14px; padding: 18px;">
+                    <h3 style="margin: 0 0 6px 0; font-size: 1.02em; color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        🏛️ Batch Set Difficulty by Institution
+                    </h3>
+                    <p style="margin: 0 0 12px 0; font-size: 0.84em; color: var(--text-muted);">
+                        Select an institution to set all of its affiliated programs to a specific difficulty tier at once.
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1.8fr 1.2fr auto; gap: 12px; align-items: end;">
+                        <div>
+                            <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Select Institution</label>
+                            <select id="batch-uni-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88em;"></select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Assign Difficulty Tier</label>
+                            <select id="batch-tier-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88em;">
+                                <option value="Super Reach">🔴 Super Reach (极限冲刺)</option>
+                                <option value="High Reach">🟠 High Reach (重点冲刺)</option>
+                                <option value="Hard Target">🟡 Hard Target (优势匹配)</option>
+                                <option value="Target">🟢 Target (稳妥匹配)</option>
+                                <option value="Safety">🔵 Safety (稳健保底)</option>
+                                <option value="">⚪ Unassigned (未分级)</option>
+                                <option value="__custom__">➕ Custom Tier...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-primary" onclick="applyBatchUniTier()" style="height: 38px; white-space: nowrap; font-size: 0.85em; padding: 0 16px;">
+                                ⚡ Apply Batch
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Global Tier Rename & Merge -->
+                <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 14px; padding: 18px;">
+                    <h3 style="margin: 0 0 6px 0; font-size: 1.02em; color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        🔄 Rename or Merge Tiers
+                    </h3>
+                    <p style="margin: 0 0 12px 0; font-size: 0.84em; color: var(--text-muted);">
+                        Rename an existing difficulty tier across all programs, or merge it into another tier.
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1.2fr 1.2fr auto; gap: 12px; align-items: end;">
+                        <div>
+                            <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Source Tier (From)</label>
+                            <select id="batch-rename-source" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88em;"></select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.82em; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">New Tier Name (To)</label>
+                            <input type="text" id="batch-rename-target" placeholder="e.g. Dream Tier, Top 10..." style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88em;">
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-action" onclick="applyRenameTier()" style="height: 38px; white-space: nowrap; font-size: 0.85em; padding: 0 16px;">
+                                🔀 Rename / Merge
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border);">
+                <button class="btn btn-primary" onclick="closeTierManagerModal()" style="font-size: 0.88em; padding: 6px 20px;">Done</button>
             </div>
         </div>
     </div>
